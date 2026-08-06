@@ -1,0 +1,157 @@
+.logs-page__top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.logs-page__title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logs-page__title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0;
+}
+
+.logs-page__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logs-page__filter-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.logs-page__user-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.logs-page__user-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #E2E8F0;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logs-page__user-card:hover {
+  border-color: #E32727;
+  box-shadow: 0 2px 8px rgba(227, 39, 39, 0.1);
+}
+
+.logs-page__user-card--active {
+  border-color: #E32727;
+  background: #FFF1F2;
+}
+
+.logs-page__user-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.logs-page__user-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.logs-page__user-card-role {
+  font-size: 11px;
+  color: #94A3B8;
+}
+
+.logs-page__user-card-count {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.logs-page__log-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logs-page__log-user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.logs-page__log-user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.logs-page__log-desc {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.logs-page__log-desc-main {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.logs-page__log-desc-detail {
+  font-size: 12px;
+  color: #94A3B8;
+}
+
+.logs-page__log-ip {
+  font-family: monospace;
+  font-size: 12px;
+  color: #94A3B8;
+}
+
+.logs-page__log-date {
+  font-family: monospace;
+  font-size: 12px;
+  color: #64748B;
+}
+
+.logs-page__changes-table {
+  margin-top: 16px;
+}
+
+@media (max-width: 1200px) {
+  .logs-page__user-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .logs-page__user-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .logs-page__top-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .logs-page__filter-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
