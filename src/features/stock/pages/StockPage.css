@@ -1,0 +1,151 @@
+.stock-page__top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.stock-page__title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stock-page__title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0;
+}
+
+.stock-page__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.stock-page__filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.stock-page__filter-tags {
+  display: flex;
+  gap: 8px;
+}
+
+.stock-page__total-value {
+  font-size: 14px;
+  color: #64748B;
+  font-weight: 500;
+}
+
+.stock-page__product-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stock-page__product-image {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #F1F5F9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: #E32727;
+  flex-shrink: 0;
+}
+
+.stock-page__product-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.stock-page__product-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1E293B;
+  line-height: 1.3;
+}
+
+.stock-page__product-code {
+  font-size: 12px;
+  color: #94A3B8;
+}
+
+.stock-page__stock-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 80px;
+}
+
+.stock-page__stock-count {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.stock-page__stock-count--danger {
+  color: #E32727;
+}
+
+.stock-page__stock-count--warning {
+  color: #F59E0B;
+}
+
+.stock-page__stock-count--safe {
+  color: #22C55E;
+}
+
+.stock-page__price-usd {
+  font-size: 12px;
+  color: #94A3B8;
+}
+
+.stock-page__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 16px;
+}
+
+.stock-page__empty-icon {
+  font-size: 48px;
+  color: #CBD5E1;
+}
+
+.stock-page__empty-text {
+  font-size: 16px;
+  color: #64748B;
+  font-weight: 500;
+}
+
+@media (max-width: 1024px) {
+  .stock-page__top-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .stock-page__actions {
+    width: 100%;
+  }
+
+  .stock-page__actions .ant-input-search {
+    flex: 1;
+  }
+}

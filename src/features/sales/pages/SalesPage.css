@@ -1,0 +1,165 @@
+.sales-page__top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.sales-page__title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sales-page__title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0;
+}
+
+.sales-page__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sales-page__filter-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.sales-page__step-content {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  min-height: 400px;
+}
+
+.sales-page__step-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1E293B;
+  margin-bottom: 20px;
+}
+
+.sales-page__cart-summary {
+  margin-top: 20px;
+  padding: 16px;
+  background: #F8FAFC;
+  border-radius: 10px;
+  border: 1px solid #E2E8F0;
+}
+
+.sales-page__cart-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 14px;
+  color: #64748B;
+}
+
+.sales-page__cart-total {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0 0;
+  margin-top: 8px;
+  border-top: 2px solid #E2E8F0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #E32727;
+}
+
+.sales-page__preview {
+  max-width: 700px;
+}
+
+.sales-page__preview-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  justify-content: flex-end;
+}
+
+.sales-page__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 16px;
+}
+
+.sales-page__empty-icon {
+  font-size: 48px;
+  color: #CBD5E1;
+}
+
+.sales-page__empty-text {
+  font-size: 16px;
+  color: #64748B;
+  font-weight: 500;
+}
+
+.sales-page__barcode-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.sales-page__barcode-viewport {
+  width: 300px;
+  height: 200px;
+  border: 2px solid #E32727;
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sales-page__barcode-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #E32727;
+  box-shadow: 0 0 8px #E32727;
+  animation: barcodeScan 2s ease-in-out infinite;
+}
+
+@keyframes barcodeScan {
+  0%, 100% { top: 10%; }
+  50% { top: 90%; }
+}
+
+.sales-page__barcode-input {
+  margin-top: 24px;
+  width: 300px;
+}
+
+.sales-page__barcode-close {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+}
+
+@media (max-width: 768px) {
+  .sales-page__top-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sales-page__actions {
+    width: 100%;
+  }
+}

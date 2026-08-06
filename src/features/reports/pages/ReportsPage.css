@@ -1,0 +1,243 @@
+.reports-page__top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.reports-page__title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0;
+}
+
+.reports-page__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reports-page__kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.reports-page__kpi-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.reports-page__kpi-label {
+  font-size: 13px;
+  color: #64748B;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.reports-page__kpi-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1E293B;
+  line-height: 1.2;
+}
+
+.reports-page__kpi-value--red {
+  color: #E32727;
+}
+
+.reports-page__kpi-change {
+  font-size: 12px;
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.reports-page__kpi-change--up {
+  color: #22C55E;
+}
+
+.reports-page__kpi-change--down {
+  color: #E32727;
+}
+
+.reports-page__kpi-sub {
+  font-size: 12px;
+  color: #94A3B8;
+  margin-top: 4px;
+}
+
+.reports-page__section {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  margin-bottom: 24px;
+}
+
+.reports-page__section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1E293B;
+  margin-bottom: 16px;
+}
+
+.reports-page__chart-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  height: 200px;
+  padding: 0 8px;
+}
+
+.reports-page__chart-bar-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.reports-page__chart-bar {
+  width: 100%;
+  max-width: 48px;
+  border-radius: 6px 6px 0 0;
+  background: #E32727;
+  transition: height 0.4s ease;
+  min-height: 4px;
+}
+
+.reports-page__chart-bar--current {
+  background: #E32727;
+  box-shadow: 0 2px 8px rgba(227, 39, 39, 0.3);
+}
+
+.reports-page__chart-label {
+  font-size: 11px;
+  color: #64748B;
+  text-align: center;
+}
+
+.reports-page__chart-value {
+  font-size: 11px;
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.reports-page__comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.reports-page__comparison-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  border: 2px solid #E2E8F0;
+}
+
+.reports-page__comparison-card--current {
+  border-color: #22C55E;
+  background: #F0FDF4;
+}
+
+.reports-page__comparison-card--previous {
+  border-color: #E2E8F0;
+  background: #F8FAFC;
+}
+
+.reports-page__comparison-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.reports-page__comparison-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 14px;
+  color: #64748B;
+}
+
+.reports-page__comparison-value {
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.reports-page__trend-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.reports-page__trend-card {
+  min-width: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  background: #F8FAFC;
+  border-radius: 8px;
+  border: 1px solid #E2E8F0;
+}
+
+.reports-page__trend-card--current {
+  background: #FFF1F2;
+  border-color: #E32727;
+}
+
+.reports-page__trend-bar {
+  width: 32px;
+  border-radius: 4px 4px 0 0;
+  background: #CBD5E1;
+  min-height: 4px;
+}
+
+.reports-page__trend-card--current .reports-page__trend-bar {
+  background: #E32727;
+}
+
+.reports-page__trend-month {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.reports-page__trend-amount {
+  font-size: 11px;
+  font-weight: 700;
+  color: #1E293B;
+}
+
+@media (max-width: 1200px) {
+  .reports-page__kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .reports-page__kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reports-page__comparison {
+    grid-template-columns: 1fr;
+  }
+
+  .reports-page__top-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
