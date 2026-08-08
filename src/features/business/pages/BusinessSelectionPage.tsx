@@ -13,7 +13,7 @@ export default function BusinessSelectionPage() {
   const { businesses, state, retry } = useBusinesses();
 
   const handleSelect = (business: Business) => {
-    navigate(`/${business.id}/dashboard`);
+    navigate(`/${business.id}/sales`);
   };
 
   const handleLogout = () => {
@@ -23,7 +23,7 @@ export default function BusinessSelectionPage() {
   return (
     <div className="business-selection">
       <header className="business-selection__header">
-        <span className="business-selection__logo">SahinMotor</span>
+        <span className="business-selection__logo">Yönetim Paneli</span>
         <div className="business-selection__user-area">
           <span className="business-selection__user-name">Zeynel</span>
           <Avatar size={36} style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff' }}>Z</Avatar>

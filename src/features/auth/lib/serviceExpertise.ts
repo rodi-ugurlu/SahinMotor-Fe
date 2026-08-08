@@ -4,7 +4,7 @@ export const serviceSpecialtyCategories: Array<{ value: TicketCategory; label: s
   { value: 'Motor', label: 'Motor' },
   { value: 'Elektrik', label: 'Elektrik' },
   { value: 'Hidrolik', label: 'Hidrolik' },
-  { value: 'Pnomatik', label: 'Pnömatik' },
+  { value: 'Pnömatik', label: 'Pnömatik' },
   { value: 'GenelBakim', label: 'Genel Bakım' },
   { value: 'ECU', label: 'ECU / Yazılım' },
 ];

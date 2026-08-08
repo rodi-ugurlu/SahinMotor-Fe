@@ -1,12 +1,4 @@
-import type { Customer, Sale, SaleItem } from '../types/sales';
-
-const MOCK_CUSTOMERS: Customer[] = [
-  { id: 'c1', name: 'Ahmet Yılmaz', phone: '0532 123 45 67', email: 'ahmet@mail.com', address: 'Kadıköy, İstanbul' },
-  { id: 'c2', name: 'Mehmet Kaya', phone: '0533 987 65 43', email: 'mehmet@mail.com', address: 'Beşiktaş, İstanbul' },
-  { id: 'c3', name: 'Ayşe Demir', phone: '0555 456 78 90', email: 'ayse@mail.com', address: 'Çankaya, Ankara' },
-  { id: 'c4', name: 'Ali Öztürk', phone: '0542 111 22 33' },
-  { id: 'c5', name: 'Can Yıldız', phone: '0530 444 55 66', email: 'can@mail.com' },
-];
+import type { Customer, Sale, SaleItem, PaymentMethod } from '../types/sales';
 
 const MOCK_PRODUCTS = [
   { id: 'p1', name: 'Motul 10W40 Motor Yağı', code: 'MTO-001', price: 450 },
@@ -21,128 +13,132 @@ const MOCK_PRODUCTS = [
   { id: 'p10', name: 'LS2 FF320 Kask', code: 'KSM-001', price: 3200 },
 ];
 
+const MOCK_CUSTOMERS: Customer[] = [
+  { id: 'c1', fullName: 'Ahmet Yılmaz', phone: '0532 123 45 67', email: 'ahmet@mail.com' },
+  { id: 'c2', fullName: 'Mehmet Kaya', phone: '0533 987 65 43', email: 'mehmet@mail.com' },
+  { id: 'c3', fullName: 'Ayşe Demir', phone: '0555 456 78 90', email: 'ayse@mail.com' },
+  { id: 'c4', fullName: 'Ali Öztürk', phone: '0542 111 22 33' },
+  { id: 'c5', fullName: 'Can Yıldız', phone: '0530 444 55 66', email: 'can@mail.com' },
+];
+
 let sales: Sale[] = [
   {
-    id: 's1', invoiceNo: 'PRO-2026-001', date: '06.08.2026 14:30',
-    customer: MOCK_CUSTOMERS[0],
+    id: 's1', bayiId: 'd1', personelId: 'u1', musteriId: 'c1',
+    musteriAdi: 'Ahmet Yılmaz', musteriTelefon: '0532 123 45 67', musteriEmail: 'ahmet@mail.com',
     items: [
       { productId: 'p1', productName: 'Motul 10W40 Motor Yağı', productCode: 'MTO-001', unitPrice: 450, quantity: 2, discountPercent: 0, discountAmount: 0, total: 900 },
     ],
-    subtotal: 900, discountTotal: 0, taxRate: 20, taxAmount: 180, grandTotal: 1080,
-    type: 'invoice', status: 'completed',
+    toplamTutar: 1080, odemeYontemi: 'kart', durum: 'bitti',
+    createdAt: '06.08.2026 14:30', updatedAt: '06.08.2026 14:30',
   },
   {
-    id: 's2', invoiceNo: 'PRO-2026-002', date: '06.08.2026 16:00',
-    customer: MOCK_CUSTOMERS[1],
+    id: 's2', bayiId: 'd1', personelId: 'u2', musteriId: 'c2',
+    musteriAdi: 'Mehmet Kaya', musteriTelefon: '0533 987 65 43', musteriEmail: 'mehmet@mail.com',
     items: [
       { productId: 'p10', productName: 'LS2 FF320 Kask', productCode: 'KSM-001', unitPrice: 3200, quantity: 1, discountPercent: 10, discountAmount: 320, total: 2880 },
     ],
-    subtotal: 3200, discountTotal: 320, taxRate: 20, taxAmount: 576, grandTotal: 3456,
-    type: 'invoice', status: 'completed',
+    toplamTutar: 3456, odemeYontemi: 'nakit', durum: 'bitti',
+    createdAt: '06.08.2026 16:00', updatedAt: '06.08.2026 16:00',
   },
   {
-    id: 's3', invoiceNo: 'PRO-2026-003', date: '05.08.2026 10:15',
-    customer: MOCK_CUSTOMERS[2],
+    id: 's3', bayiId: 'd1', personelId: 'u3', musteriId: 'c3',
+    musteriAdi: 'Ayşe Demir', musteriTelefon: '0555 456 78 90', musteriEmail: 'ayse@mail.com',
     items: [
       { productId: 'p4', productName: 'Fren Balatası Ön Set', productCode: 'FRN-002', unitPrice: 280, quantity: 1, discountPercent: 0, discountAmount: 0, total: 280 },
       { productId: 'p3', productName: 'Fren Hidroliği DOT4', productCode: 'FRN-001', unitPrice: 120, quantity: 2, discountPercent: 0, discountAmount: 0, total: 240 },
     ],
-    subtotal: 520, discountTotal: 0, taxRate: 20, taxAmount: 104, grandTotal: 624,
-    type: 'proforma', status: 'pending',
+    toplamTutar: 624, odemeYontemi: 'havale', durum: 'beklemede',
+    createdAt: '05.08.2026 10:15', updatedAt: '05.08.2026 10:15',
   },
   {
-    id: 's4', invoiceNo: 'PRO-2026-004', date: '04.08.2026 09:00',
-    customer: MOCK_CUSTOMERS[3],
+    id: 's4', bayiId: 'd2', personelId: 'u4', musteriId: 'c4',
+    musteriAdi: 'Ali Öztürk', musteriTelefon: '0542 111 22 33',
     items: [
       { productId: 'p6', productName: 'NGK Buji CR8E', productCode: 'ELK-001', unitPrice: 95, quantity: 4, discountPercent: 5, discountAmount: 19, total: 361 },
     ],
-    subtotal: 380, discountTotal: 19, taxRate: 20, taxAmount: 72.2, grandTotal: 433.2,
-    type: 'invoice', status: 'completed',
+    toplamTutar: 433, odemeYontemi: 'kart', durum: 'bitti',
+    createdAt: '04.08.2026 09:00', updatedAt: '04.08.2026 09:00',
   },
   {
-    id: 's5', invoiceNo: 'PRO-2026-005', date: '03.08.2026 11:45',
-    customer: MOCK_CUSTOMERS[4],
+    id: 's5', bayiId: 'd2', personelId: 'u5', musteriId: 'c5',
+    musteriAdi: 'Can Yıldız', musteriTelefon: '0530 444 55 66', musteriEmail: 'can@mail.com',
     items: [
       { productId: 'p8', productName: 'Zincir Seti 520 O-Ring', productCode: 'ZNC-001', unitPrice: 850, quantity: 1, discountPercent: 0, discountAmount: 0, total: 850 },
       { productId: 'p9', productName: 'Zincir Spreyi 400ml', productCode: 'ZNC-002', unitPrice: 150, quantity: 1, discountPercent: 0, discountAmount: 0, total: 150 },
     ],
-    subtotal: 1000, discountTotal: 0, taxRate: 20, taxAmount: 200, grandTotal: 1200,
-    type: 'proforma', status: 'cancelled',
+    toplamTutar: 1200, odemeYontemi: 'nakit', durum: 'iptal',
+    createdAt: '03.08.2026 11:45', updatedAt: '03.08.2026 11:45',
   },
 ];
 
-let nextInvoiceNo = 6;
-
-export async function getCustomers(): Promise<Customer[]> {
-  return new Promise((resolve) => setTimeout(() => resolve(MOCK_CUSTOMERS), 300));
+export async function getProducts(): Promise<Array<{ id: string; name: string; code: string; price: number }>> {
+  return new Promise((resolve) => setTimeout(() => resolve(MOCK_PRODUCTS), 200));
 }
 
-export async function getProducts(): Promise<Array<{ id: string; name: string; code: string; price: number }>> {
-  return new Promise((resolve) => setTimeout(() => resolve(MOCK_PRODUCTS), 300));
+export async function getCustomers(): Promise<Customer[]> {
+  return new Promise((resolve) => setTimeout(() => resolve(MOCK_CUSTOMERS), 200));
 }
 
 export async function getSales(): Promise<Sale[]> {
-  return new Promise((resolve) => setTimeout(() => resolve([...sales]), 400));
+  return new Promise((resolve) => setTimeout(() => resolve([...sales]), 300));
 }
 
 export async function createSale(data: {
-  customer: Customer;
+  bayiId: string;
+  personelId: string;
+  musteriId: string;
+  musteriAdi: string;
+  musteriTelefon: string;
+  musteriEmail?: string;
   items: SaleItem[];
-  type: 'proforma' | 'invoice';
+  odemeYontemi: PaymentMethod;
+  durum: Sale['durum'];
 }): Promise<Sale> {
   return new Promise((resolve) => {
     setTimeout(() => {
       const subtotal = data.items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
       const discountTotal = data.items.reduce((sum, i) => sum + i.discountAmount, 0);
-      const taxRate = 20;
-      const taxAmount = (subtotal - discountTotal) * (taxRate / 100);
+      const taxAmount = (subtotal - discountTotal) * 0.2;
       const grandTotal = subtotal - discountTotal + taxAmount;
+      const now = new Date().toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
       const sale: Sale = {
         id: String(Date.now()),
-        invoiceNo: `PRO-2026-${String(nextInvoiceNo++).padStart(3, '0')}`,
-        date: new Date().toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-        customer: data.customer,
+        bayiId: data.bayiId,
+        personelId: data.personelId,
+        musteriId: data.musteriId,
+        musteriAdi: data.musteriAdi,
+        musteriTelefon: data.musteriTelefon,
+        musteriEmail: data.musteriEmail,
         items: data.items,
-        subtotal,
-        discountTotal,
-        taxRate,
-        taxAmount,
-        grandTotal,
-        type: data.type,
-        status: data.type === 'invoice' ? 'completed' : 'pending',
+        toplamTutar: grandTotal,
+        odemeYontemi: data.odemeYontemi,
+        durum: data.durum,
+        createdAt: now,
+        updatedAt: now,
       };
       sales = [sale, ...sales];
       resolve(sale);
-    }, 400);
+    }, 300);
   });
 }
 
-export async function convertToInvoice(saleId: string): Promise<Sale> {
+export async function updateSaleStatus(id: string, durum: Sale['durum']): Promise<Sale> {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
-      const index = sales.findIndex((s) => s.id === saleId);
+      const index = sales.findIndex((s) => s.id === id);
       if (index === -1) return reject(new Error('Satış bulunamadı'));
-      sales[index] = { ...sales[index], type: 'invoice', status: 'completed' };
+      sales[index] = { ...sales[index], durum, updatedAt: new Date().toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) };
       resolve(sales[index]);
-    }, 300);
+    }, 200);
   });
 }
 
-export async function deleteSale(saleId: string): Promise<void> {
+export async function deleteSale(id: string): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(() => {
-      sales = sales.filter((s) => s.id !== saleId);
+      sales = sales.filter((s) => s.id !== id);
       resolve();
-    }, 300);
-  });
-}
-
-export async function scanBarcode(code: string): Promise<{ id: string; name: string; code: string; price: number } | null> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const product = MOCK_PRODUCTS.find((p) => p.code === code);
-      resolve(product ?? null);
-    }, 800);
+    }, 200);
   });
 }

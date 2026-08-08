@@ -11,12 +11,10 @@ interface UseStockReturn {
   state: State;
   search: string;
   filter: StockFilter;
-  criticalCount: number;
-  totalValue: number;
   setSearch: (value: string) => void;
   setFilter: (filter: StockFilter) => void;
-  handleAdd: (data: Omit<Product, 'id' | 'priceUSD'>) => Promise<void>;
-  handleUpdate: (id: string, data: Partial<Omit<Product, 'id' | 'priceUSD'>>) => Promise<void>;
+  handleAdd: (data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  handleUpdate: (id: string, data: Partial<Omit<Product, 'id' | 'createdAt' | 'updatedAt'>>) => Promise<void>;
   handleDelete: (id: string) => Promise<void>;
   retry: () => void;
 }
@@ -38,19 +36,8 @@ export function useStock(): UseStockReturn {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetch();
   }, [fetch]);
-
-  const criticalCount = useMemo(
-    () => products.filter((p) => p.stock <= p.minStock).length,
-    [products]
-  );
-
-  const totalValue = useMemo(
-    () => products.reduce((sum, p) => sum + p.stock * p.priceTL, 0),
-    [products]
-  );
 
   const filteredProducts = useMemo(() => {
     let result = products;
@@ -66,50 +53,52 @@ export function useStock(): UseStockReturn {
       result = result.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
-          p.code.toLowerCase().includes(q) ||
-          p.category.toLowerCase().includes(q)
+          p.brand.toLowerCase().includes(q) ||
+          p.model.toLowerCase().includes(q)
       );
     }
 
     return result;
   }, [products, filter, search]);
 
-  const handleAdd = async (data: Omit<Product, 'id' | 'priceUSD'>) => {
-    const newProduct = await addProduct(data);
-    setProducts((prev) => [newProduct, ...prev]);
-    setState('loaded');
-    message.success('Ürün başarıyla eklendi');
+  const handleAdd = async (data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const newProduct = await addProduct(data);
+      setProducts((prev) => [newProduct, ...prev]);
+      setState('loaded');
+      message.success('Ürün başarıyla eklendi');
+    } catch {
+      message.error('Ürün eklenirken hata oluştu');
+    }
   };
 
-  const handleUpdate = async (id: string, data: Partial<Omit<Product, 'id' | 'priceUSD'>>) => {
-    const updated = await updateProduct(id, data);
-    setProducts((prev) => prev.map((p) => (p.id === id ? updated : p)));
-    message.success('Ürün güncellendi');
+  const handleUpdate = async (id: string, data: Partial<Omit<Product, 'id' | 'createdAt' | 'updatedAt'>>) => {
+    try {
+      const updated = await updateProduct(id, data);
+      setProducts((prev) => prev.map((p) => (p.id === id ? updated : p)));
+      message.success('Ürün güncellendi');
+    } catch {
+      message.error('Ürün güncellenirken hata oluştu');
+    }
   };
 
   const handleDelete = async (id: string) => {
-    await deleteProduct(id);
-    setProducts((prev) => {
-      const next = prev.filter((p) => p.id !== id);
-      if (next.length === 0) setState('empty');
-      return next;
-    });
-    message.success('Ürün silindi');
+    try {
+      await deleteProduct(id);
+      setProducts((prev) => {
+        const next = prev.filter((p) => p.id !== id);
+        if (next.length === 0) setState('empty');
+        return next;
+      });
+      message.success('Ürün silindi');
+    } catch {
+      message.error('Ürün silinirken hata oluştu');
+    }
   };
 
   return {
-    products,
-    filteredProducts,
-    state,
-    search,
-    filter,
-    criticalCount,
-    totalValue,
-    setSearch,
-    setFilter,
-    handleAdd,
-    handleUpdate,
-    handleDelete,
+    products, filteredProducts, state, search, filter,
+    setSearch, setFilter, handleAdd, handleUpdate, handleDelete,
     retry: fetch,
   };
 }

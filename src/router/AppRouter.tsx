@@ -2,11 +2,13 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import SahinLogin from '../features/auth/pages/SahinLogin';
 import BusinessSelectionPage from '../features/business/pages/BusinessSelectionPage';
 import DashboardLayout from '../layouts/DashboardLayout';
-import DashboardPage from '../features/dashboard/pages/DashboardPage';
-import StockPage from '../features/stock/pages/StockPage';
 import SalesPage from '../features/sales/pages/SalesPage';
-import ReportsPage from '../features/reports/pages/ReportsPage';
-import LogsPage from '../features/logs/pages/LogsPage';
+import StockPage from '../features/stock/pages/StockPage';
+import CustomersPage from '../features/customers/pages/CustomersPage';
+import DealersPage from '../features/dealers/pages/DealersPage';
+import UsersPage from '../features/users/pages/UsersPage';
+import TransactionsPage from '../features/transactions/pages/TransactionsPage';
+import NotFoundPage from '../pages/NotFoundPage';
 
 const router = createBrowserRouter([
   {
@@ -15,6 +17,10 @@ const router = createBrowserRouter([
   },
   {
     path: '/sahin/login',
+    element: <SahinLogin />,
+  },
+  {
+    path: '/koman/login',
     element: <SahinLogin />,
   },
   {
@@ -27,11 +33,7 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <DashboardPage />,
-      },
-      {
-        path: 'dashboard',
-        element: <DashboardPage />,
+        element: <SalesPage />,
       },
       {
         path: 'sales',
@@ -42,14 +44,30 @@ const router = createBrowserRouter([
         element: <StockPage />,
       },
       {
-        path: 'reports',
-        element: <ReportsPage />,
+        path: 'customers',
+        element: <CustomersPage />,
       },
       {
-        path: 'logs',
-        element: <LogsPage />,
+        path: 'dealers',
+        element: <DealersPage />,
+      },
+      {
+        path: 'users',
+        element: <UsersPage />,
+      },
+      {
+        path: 'transactions',
+        element: <TransactionsPage />,
+      },
+      {
+        path: '*',
+        element: <NotFoundPage />,
       },
     ],
+  },
+  {
+    path: '*',
+    element: <NotFoundPage />,
   },
 ]);
 

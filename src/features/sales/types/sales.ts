@@ -1,11 +1,3 @@
-export interface Customer {
-  id: string;
-  name: string;
-  phone: string;
-  email?: string;
-  address?: string;
-}
-
 export interface SaleItem {
   productId: string;
   productName: string;
@@ -17,24 +9,29 @@ export interface SaleItem {
   total: number;
 }
 
-export type SaleType = 'proforma' | 'invoice';
-export type SaleStatus = 'pending' | 'completed' | 'cancelled';
+export type PaymentMethod = 'kart' | 'nakit' | 'havale';
+export type SaleStatus = 'taslak' | 'beklemede' | 'bitti' | 'iptal';
 
 export interface Sale {
   id: string;
-  invoiceNo: string;
-  date: string;
-  customer: Customer;
+  bayiId: string;
+  personelId: string;
+  musteriId: string;
+  musteriAdi: string;
+  musteriTelefon: string;
+  musteriEmail?: string;
   items: SaleItem[];
-  subtotal: number;
-  discountTotal: number;
-  taxRate: number;
-  taxAmount: number;
-  grandTotal: number;
-  type: SaleType;
-  status: SaleStatus;
+  toplamTutar: number;
+  odemeYontemi: PaymentMethod;
+  durum: SaleStatus;
+  faturaDosyasi?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export type SalesView = 'list' | 'new';
-export type SaleStep = 1 | 2 | 3;
-export type SalesFilter = 'all' | 'proforma' | 'invoice' | 'pending' | 'completed';
+export interface Customer {
+  id: string;
+  fullName: string;
+  phone: string;
+  email?: string;
+}

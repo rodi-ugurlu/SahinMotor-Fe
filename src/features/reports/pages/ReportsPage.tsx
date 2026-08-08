@@ -1,7 +1,6 @@
 import {
   Alert,
   Button,
-  DatePicker,
   Progress,
   Skeleton,
   Table,
@@ -19,7 +18,6 @@ import type { DailyReport, MonthlyReport, ProductReport, ReportPeriod, WeeklyRep
 import './ReportsPage.css';
 
 const { Text } = Typography;
-const { RangePicker } = DatePicker;
 
 export default function ReportsPage() {
   const { period, summary, daily, weekly, monthly, products, state, setPeriod, retry } = useReports();
@@ -83,7 +81,7 @@ export default function ReportsPage() {
             ]}
             dataSource={daily}
             rowKey="invoiceNo"
-            pagination={{ pageSize: 7, showSizeChanger: false }}
+            pagination={{ pageSize: 10, showSizeChanger: false }}
             size="small"
           />
         </div>
@@ -200,7 +198,7 @@ export default function ReportsPage() {
           <div className="reports-page__trend-scroll">
             {monthly.map((m) => {
               const height = Math.max((m.totalRevenue / maxRevenue) * 100, 8);
-              const isCurrent = m.month === 'Ağustos';
+              const isCurrent = m.month === new Date().toLocaleString('tr-TR', { month: 'long' }).charAt(0).toUpperCase() + new Date().toLocaleString('tr-TR', { month: 'long' }).slice(1);
               return (
                 <div className={`reports-page__trend-card ${isCurrent ? 'reports-page__trend-card--current' : ''}`} key={m.month}>
                   <div className="reports-page__trend-amount">₺{(m.totalRevenue / 1000).toFixed(1)}k</div>
@@ -262,7 +260,6 @@ export default function ReportsPage() {
       <div className="reports-page__top-bar">
         <h1 className="reports-page__title">Raporlama</h1>
         <div className="reports-page__actions">
-          <RangePicker size="large" style={{ borderRadius: 8 }} />
           <Button type="primary" danger icon={<ReloadOutlined />} onClick={retry}>
             Raporu Güncelle
           </Button>

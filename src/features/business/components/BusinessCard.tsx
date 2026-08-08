@@ -10,7 +10,7 @@ interface BusinessCardProps {
 }
 
 export function BusinessCard({ business, onSelect }: BusinessCardProps) {
-  const initial = business.name.charAt(0).toUpperCase();
+  const initial = business.name?.charAt(0)?.toUpperCase() ?? '?';
 
   return (
     <Card
@@ -50,6 +50,10 @@ export function BusinessCard({ business, onSelect }: BusinessCardProps) {
         size="large"
         icon={<ArrowRightOutlined />}
         style={{ borderRadius: 8, height: 44, fontWeight: 500 }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelect(business);
+        }}
       >
         Yönet
       </Button>

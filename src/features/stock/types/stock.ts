@@ -1,25 +1,19 @@
-export type ProductCategory = 'Motor Yağı' | 'Fren Sistemi' | 'Filtre' | 'Elektrik' | 'Zincir/Dişli' | 'Diğer';
-
 export interface Product {
   id: string;
+  barcode: string;
   name: string;
-  code: string;
-  category: ProductCategory;
+  brand: string;
+  model: string;
+  size: string;
+  color: string;
+  purchasePrice: number;
+  salePrice: number;
+  imageUrl?: string;
   stock: number;
   minStock: number;
-  priceTL: number;
-  priceUSD: number;
-  imageUrl?: string;
-  description?: string;
+  dealerId: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type StockFilter = 'all' | 'critical' | 'normal';
-
-export const CATEGORIES: ProductCategory[] = [
-  'Motor Yağı',
-  'Fren Sistemi',
-  'Filtre',
-  'Elektrik',
-  'Zincir/Dişli',
-  'Diğer',
-];

@@ -7,6 +7,7 @@ import {
   TeamOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useDashboard } from '../hooks/useDashboard';
 import type { RecentSale, StockItem } from '../types/dashboard';
 import './DashboardPage.css';
@@ -48,11 +49,14 @@ function getStockColor(current: number, min: number): 'danger' | 'warning' | 'sa
 }
 
 function getStockPercent(current: number, max: number): number {
+  if (max <= 0) return 0;
   return Math.round((current / max) * 100);
 }
 
 export default function DashboardPage() {
   const { stats, recentSales, stockItems, state, retry } = useDashboard();
+  const navigate = useNavigate();
+  const { businessId } = useParams();
 
   if (state === 'error') {
     return (
@@ -91,11 +95,11 @@ export default function DashboardPage() {
                 </span>
               </div>
               <div className="dashboard-page__kpi-value">
-                ₺{stats?.dailyRevenue.toLocaleString('tr-TR')}
+                ₺{stats?.dailyRevenue?.toLocaleString('tr-TR') ?? '0'}
               </div>
               <div className="dashboard-page__kpi-footer">
                 <span className="dashboard-page__kpi-change">
-                  <ArrowUpOutlined /> %{stats?.dailyRevenueChange} artış
+                  <ArrowUpOutlined /> %{stats?.dailyRevenueChange ?? 0} artış
                 </span>
               </div>
             </div>
@@ -107,7 +111,7 @@ export default function DashboardPage() {
                   <ShoppingCartOutlined />
                 </span>
               </div>
-              <div className="dashboard-page__kpi-value">{stats?.totalSalesCount}</div>
+              <div className="dashboard-page__kpi-value">{stats?.totalSalesCount ?? 0}</div>
               <div className="dashboard-page__kpi-footer">Bugün</div>
             </div>
 
@@ -118,7 +122,7 @@ export default function DashboardPage() {
                   <WarningOutlined />
                 </span>
               </div>
-              <div className="dashboard-page__kpi-value">{stats?.criticalStockCount}</div>
+              <div className="dashboard-page__kpi-value">{stats?.criticalStockCount ?? 0}</div>
               <div className="dashboard-page__kpi-footer">
                 <Tag color="red" style={{ margin: 0 }}>Stok Az</Tag>
               </div>
@@ -131,8 +135,8 @@ export default function DashboardPage() {
                   <TeamOutlined />
                 </span>
               </div>
-              <div className="dashboard-page__kpi-value">{stats?.activeUserCount}</div>
-              <div className="dashboard-page__kpi-footer">{stats?.activeUserRole}</div>
+              <div className="dashboard-page__kpi-value">{stats?.activeUserCount ?? 0}</div>
+              <div className="dashboard-page__kpi-footer">{stats?.activeUserRole ?? '—'}</div>
             </div>
           </>
         )}
@@ -154,7 +158,7 @@ export default function DashboardPage() {
                 showHeader={true}
               />
               <div className="dashboard-page__view-all">
-                <Button type="link" size="small">
+                <Button type="link" size="small" onClick={() => navigate(`/${businessId}/sales`)}>
                   Tümünü Gör
                 </Button>
               </div>

@@ -1,20 +1,12 @@
 import type { Business } from '../types/business';
-
-const MOCK_BUSINESSES: Business[] = [
-  {
-    id: 'sahin-motor',
-    name: 'Şahin Motor',
-    description: 'Sıfır Motor Satışı, Bakım ve Onarım Hizmetleri',
-  },
-  {
-    id: 'koman-motor',
-    name: 'Koman Motor',
-    description: 'Kask, Mont ve Koruma Ekipmanları Satışı',
-  },
-];
+import { getDealers } from '../../dealers/services/dealersService';
 
 export async function getBusinesses(): Promise<Business[]> {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(MOCK_BUSINESSES), 600);
-  });
+  const dealers = await getDealers();
+  return dealers.map((d) => ({
+    id: d.id,
+    name: d.name,
+    description: d.description,
+    logoUrl: d.logoUrl,
+  }));
 }

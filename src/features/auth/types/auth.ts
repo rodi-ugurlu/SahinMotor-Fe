@@ -37,7 +37,7 @@ export interface KomanRegisterRequest {
   terms: boolean;
 }
 
-export type TicketCategory = 'Motor' | 'Elektrik' | 'Hidrolik' | 'Pnomatik' | 'GenelBakim' | 'ECU';
+export type TicketCategory = 'Motor' | 'Elektrik' | 'Hidrolik' | 'Pnömatik' | 'GenelBakim' | 'ECU';
 
 export type AuthRole = 'sahin' | 'koman';
 export type AuthView = 'login' | 'register';

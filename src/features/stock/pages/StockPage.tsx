@@ -5,7 +5,6 @@ import {
   Button,
   Input,
   Modal,
-  Progress,
   Skeleton,
   Space,
   Table,
@@ -14,15 +13,12 @@ import {
   Typography,
 } from 'antd';
 import {
-  CameraOutlined,
   DeleteOutlined,
-  DollarOutlined,
   EditOutlined,
   InboxOutlined,
   PlusOutlined,
   ReloadOutlined,
   SearchOutlined,
-  WarningOutlined,
 } from '@ant-design/icons';
 import { useStock } from '../hooks/useStock';
 import { ProductFormModal } from '../components/ProductFormModal';
@@ -31,43 +27,17 @@ import './StockPage.css';
 
 const { Text } = Typography;
 
-function getStockColor(stock: number, min: number): 'danger' | 'warning' | 'safe' {
-  if (stock <= min) return 'danger';
-  if (stock <= min * 2) return 'warning';
-  return 'safe';
-}
-
-function getStockPercent(stock: number, min: number): number {
-  const max = min * 4;
-  return Math.min(Math.round((stock / max) * 100), 100);
-}
-
-function getStockStatus(stock: number, min: number): { color: string; label: string } {
-  const c = getStockColor(stock, min);
-  if (c === 'danger') return { color: 'red', label: 'Kritik' };
-  if (c === 'warning') return { color: 'orange', label: 'Az' };
-  return { color: 'green', label: 'Yeterli' };
-}
-
 export default function StockPage() {
   const {
-    filteredProducts,
-    state,
-    search,
-    filter,
-    criticalCount,
-    totalValue,
-    setSearch,
-    setFilter,
-    handleAdd,
-    handleUpdate,
-    handleDelete,
-    retry,
+    filteredProducts, state, search, filter,
+    setSearch, setFilter, handleAdd, handleUpdate, handleDelete, retry,
   } = useStock();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+  const [hoveredImage, setHoveredImage] = useState<string | null>(null);
+  const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
 
   const openAdd = () => {
     setEditingProduct(null);
@@ -84,120 +54,133 @@ export default function StockPage() {
   };
 
   const executeDelete = async () => {
-    if (deleteTarget) {
+    if (!deleteTarget) return;
+    try {
       await handleDelete(deleteTarget.id);
       setDeleteTarget(null);
+    } catch {
+      // handled in hook
     }
   };
 
-  const handleSubmit = async (values: Omit<Product, 'id' | 'priceUSD'>) => {
-    if (editingProduct) {
-      await handleUpdate(editingProduct.id, values);
-    } else {
-      await handleAdd(values);
+  const handleSubmit = async (values: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      if (editingProduct) {
+        await handleUpdate(editingProduct.id, values);
+      } else {
+        await handleAdd(values);
+      }
+      setModalOpen(false);
+      setEditingProduct(null);
+    } catch {
+      // handled in hook
     }
-    setModalOpen(false);
-    setEditingProduct(null);
+  };
+
+  const handleMouseEnter = (e: React.MouseEvent, imageUrl?: string) => {
+    if (!imageUrl) return;
+    setHoveredImage(imageUrl);
+    setHoverPosition({ x: e.clientX + 16, y: e.clientY - 100 });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!hoveredImage) return;
+    setHoverPosition({ x: e.clientX + 16, y: e.clientY - 100 });
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredImage(null);
   };
 
   const columns = [
     {
       title: 'Ürün',
       key: 'product',
-      width: 280,
+      width: 260,
       render: (_: unknown, record: Product) => (
-        <div className="stock-page__product-cell">
+        <div
+          className="stock-page__product-cell"
+          onMouseEnter={(e) => handleMouseEnter(e, record.imageUrl)}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+        >
           <div className="stock-page__product-image">
             {record.imageUrl ? <img src={record.imageUrl} alt={record.name} /> : record.name.charAt(0)}
           </div>
           <div className="stock-page__product-info">
             <Text className="stock-page__product-name" ellipsis>{record.name}</Text>
-            <Text className="stock-page__product-code">{record.code}</Text>
+            <Text className="stock-page__product-barcode">{record.barcode}</Text>
           </div>
         </div>
       ),
     },
     {
-      title: 'Kategori',
-      dataIndex: 'category',
-      key: 'category',
-      width: 130,
-      render: (cat: string) => <Tag>{cat}</Tag>,
-    },
-    {
-      title: 'Stok Adedi',
-      key: 'stock',
-      width: 140,
-      sorter: (a: Product, b: Product) => a.stock - b.stock,
-      render: (_: unknown, record: Product) => {
-        const color = getStockColor(record.stock, record.minStock);
-        return (
-          <div className="stock-page__stock-cell">
-            <Text className={`stock-page__stock-count stock-page__stock-count--${color}`}>
-              {record.stock}
-            </Text>
-            <Progress
-              percent={getStockPercent(record.stock, record.minStock)}
-              size="small"
-              showInfo={false}
-              strokeColor={color === 'danger' ? '#E32727' : color === 'warning' ? '#F59E0B' : '#22C55E'}
-              trailColor="#F1F5F9"
-            />
-          </div>
-        );
-      },
-    },
-    {
-      title: 'Min. Stok',
-      dataIndex: 'minStock',
-      key: 'minStock',
-      width: 90,
-      align: 'center' as const,
-    },
-    {
-      title: 'Birim Fiyat',
-      key: 'price',
-      width: 130,
-      sorter: (a: Product, b: Product) => a.priceTL - b.priceTL,
-      render: (_: unknown, record: Product) => (
-        <div>
-          <Text strong>₺{record.priceTL.toLocaleString('tr-TR')}</Text>
-          <br />
-          <Text className="stock-page__price-usd">${record.priceUSD}</Text>
-        </div>
-      ),
-    },
-    {
-      title: 'Dolar Fiyat',
-      dataIndex: 'priceUSD',
-      key: 'priceUSD',
+      title: 'Marka',
+      dataIndex: 'brand',
+      key: 'brand',
       width: 100,
-      render: (val: number) => <Text>${val}</Text>,
-      responsive: ['lg' as const],
+      render: (v: string) => <Text>{v}</Text>,
     },
     {
-      title: 'Durum',
-      key: 'status',
+      title: 'Model',
+      dataIndex: 'model',
+      key: 'model',
+      width: 100,
+      render: (v: string) => <Text>{v}</Text>,
+    },
+    {
+      title: 'Beden',
+      dataIndex: 'size',
+      key: 'size',
       width: 90,
-      render: (_: unknown, record: Product) => {
-        const status = getStockStatus(record.stock, record.minStock);
-        return <Badge status={status.color as 'success' | 'warning' | 'error'} text={status.label} />;
+      render: (v: string) => <Tag>{v}</Tag>,
+    },
+    {
+      title: 'Renk',
+      dataIndex: 'color',
+      key: 'color',
+      width: 80,
+      render: (v: string) => <Text>{v}</Text>,
+    },
+    {
+      title: 'Alış Fiyatı',
+      dataIndex: 'purchasePrice',
+      key: 'purchasePrice',
+      width: 110,
+      sorter: (a: Product, b: Product) => a.purchasePrice - b.purchasePrice,
+      render: (v: number) => <Text>₺{v.toLocaleString('tr-TR')}</Text>,
+    },
+    {
+      title: 'Satış Fiyatı',
+      dataIndex: 'salePrice',
+      key: 'salePrice',
+      width: 110,
+      sorter: (a: Product, b: Product) => a.salePrice - b.salePrice,
+      render: (v: number) => <Text strong>₺{v.toLocaleString('tr-TR')}</Text>,
+    },
+    {
+      title: 'Stok',
+      dataIndex: 'stock',
+      key: 'stock',
+      width: 80,
+      align: 'center' as const,
+      sorter: (a: Product, b: Product) => a.stock - b.stock,
+      render: (v: number, record: Product) => {
+        const color = v <= record.minStock ? '#E32727' : v <= record.minStock * 2 ? '#F59E0B' : '#22C55E';
+        return <Text strong style={{ color, fontSize: 15 }}>{v}</Text>;
       },
     },
     {
-      title: '',
+      title: 'İşlemler',
       key: 'actions',
-      width: 120,
+      width: 90,
       render: (_: unknown, record: Product) => (
-        <Space size={4}>
-          <Tooltip title="Düzenle">
-            <Button type="text" size="small" icon={<EditOutlined />} onClick={() => openEdit(record)} />
+        <Space size={8}>
+          <Tooltip title="Düzenle" placement="top">
+            <Button type="text" icon={<EditOutlined style={{ fontSize: 16 }} />} onClick={() => openEdit(record)} />
           </Tooltip>
-          <Tooltip title="Sil">
-            <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => confirmDelete(record)} />
-          </Tooltip>
-          <Tooltip title="Fotoğraf">
-            <Button type="text" size="small" icon={<CameraOutlined />} />
+          <Tooltip title="Sil" placement="top">
+            <Button type="text" danger icon={<DeleteOutlined style={{ fontSize: 16 }} />} onClick={() => confirmDelete(record)} />
           </Tooltip>
         </Space>
       ),
@@ -206,35 +189,11 @@ export default function StockPage() {
 
   return (
     <div className="stock-page">
-      {criticalCount > 0 && state === 'loaded' && (
-        <Alert
-          message={
-            <span>
-              <WarningOutlined style={{ marginRight: 8 }} />
-              {criticalCount} ürün kritik stok seviyesinin altında! Tedarik edilmesi gerekiyor.
-            </span>
-          }
-          type="warning"
-          showIcon={false}
-          action={
-            <Button size="small" type="link" onClick={() => setFilter('critical')}>
-              Detay
-            </Button>
-          }
-          style={{ marginBottom: 16, borderRadius: 10 }}
-        />
-      )}
-
       {state === 'error' && (
         <Alert
           message="Stok verileri yüklenirken hata oluştu"
-          type="error"
-          showIcon
-          action={
-            <Button size="small" danger icon={<ReloadOutlined />} onClick={retry}>
-              Yeniden Dene
-            </Button>
-          }
+          type="error" showIcon
+          action={<Button size="small" danger icon={<ReloadOutlined />} onClick={retry}>Yeniden Dene</Button>}
           style={{ marginBottom: 16, borderRadius: 10 }}
         />
       )}
@@ -242,57 +201,45 @@ export default function StockPage() {
       <div className="stock-page__top-bar">
         <div className="stock-page__title-row">
           <h1 className="stock-page__title">Stok Yönetimi</h1>
-          {state === 'loaded' && (
-            <Badge count={filteredProducts.length} color="#E32727" overflowCount={999} />
-          )}
+          {state === 'loaded' && <Badge count={filteredProducts.length} color="#E32727" overflowCount={999} />}
         </div>
-
         <div className="stock-page__actions">
           <Button type="primary" danger icon={<PlusOutlined />} onClick={openAdd}>
             Yeni Ürün
           </Button>
-          <Button icon={<DollarOutlined />}>
-            Dolar Kuru: ₺32,50
-          </Button>
           <Input
             prefix={<SearchOutlined />}
-            placeholder="Ürün ara..."
+            placeholder="Ürün, marka veya model ara..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ width: 240 }}
+            style={{ width: 260 }}
             allowClear
           />
         </div>
       </div>
 
       <div className="stock-page__filter-row">
-        <div className="stock-page__filter-tags">
-          <Tag
-            color={filter === 'all' ? 'red' : 'default'}
-            style={{ cursor: 'pointer', padding: '4px 12px', fontSize: 13 }}
-            onClick={() => setFilter('all')}
-          >
-            Tümü
-          </Tag>
-          <Tag
-            color={filter === 'critical' ? 'red' : 'default'}
-            style={{ cursor: 'pointer', padding: '4px 12px', fontSize: 13 }}
-            onClick={() => setFilter('critical')}
-          >
-            Kritik Stok {criticalCount > 0 && <Badge count={criticalCount} size="small" style={{ marginLeft: 4 }} />}
-          </Tag>
-          <Tag
-            color={filter === 'normal' ? 'green' : 'default'}
-            style={{ cursor: 'pointer', padding: '4px 12px', fontSize: 13 }}
-            onClick={() => setFilter('normal')}
-          >
-            Normal
-          </Tag>
-        </div>
-
-        <Text className="stock-page__total-value">
-          Toplam Stok Değeri: ₺{totalValue.toLocaleString('tr-TR')}
-        </Text>
+        <Tag
+          color={filter === 'all' ? 'red' : 'default'}
+          style={{ cursor: 'pointer', padding: '4px 12px', fontSize: 13 }}
+          onClick={() => setFilter('all')}
+        >
+          Tümü
+        </Tag>
+        <Tag
+          color={filter === 'critical' ? 'red' : 'default'}
+          style={{ cursor: 'pointer', padding: '4px 12px', fontSize: 13 }}
+          onClick={() => setFilter('critical')}
+        >
+          Kritik Stok
+        </Tag>
+        <Tag
+          color={filter === 'normal' ? 'green' : 'default'}
+          style={{ cursor: 'pointer', padding: '4px 12px', fontSize: 13 }}
+          onClick={() => setFilter('normal')}
+        >
+          Normal
+        </Tag>
       </div>
 
       {state === 'loading' && (
@@ -316,20 +263,26 @@ export default function StockPage() {
           columns={columns}
           dataSource={filteredProducts}
           rowKey="id"
-          pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (total) => `Toplam ${total} ürün` }}
+          pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (total) => `Toplam ${total} ürün` }}
           style={{ background: '#fff', borderRadius: 12 }}
           locale={{ emptyText: 'Aramanızla eşleşen ürün bulunamadı' }}
-          scroll={{ x: 1000 }}
+          scroll={{ x: 1100 }}
         />
+      )}
+
+      {hoveredImage && (
+        <div
+          className="stock-page__image-preview"
+          style={{ left: hoverPosition.x, top: hoverPosition.y }}
+        >
+          <img src={hoveredImage} alt="Ürün önizleme" />
+        </div>
       )}
 
       <ProductFormModal
         open={modalOpen}
         editingProduct={editingProduct}
-        onCancel={() => {
-          setModalOpen(false);
-          setEditingProduct(null);
-        }}
+        onCancel={() => { setModalOpen(false); setEditingProduct(null); }}
         onSubmit={handleSubmit}
       />
 
@@ -342,9 +295,7 @@ export default function StockPage() {
         cancelText="İptal"
         okButtonProps={{ danger: true, type: 'primary' }}
       >
-        <p>
-          <strong>{deleteTarget?.name}</strong> ürününü silmek istediğinize emin misiniz?
-        </p>
+        <p><strong>{deleteTarget?.name}</strong> ürününü silmek istediğinize emin misiniz?</p>
       </Modal>
     </div>
   );

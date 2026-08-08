@@ -4,7 +4,6 @@ import {
   Avatar,
   Badge,
   Button,
-  DatePicker,
   Descriptions,
   Drawer,
   Input,
@@ -13,6 +12,7 @@ import {
   Table,
   Tag,
   Typography,
+  message,
 } from 'antd';
 import {
   DownloadOutlined,
@@ -25,7 +25,6 @@ import type { LogEntry, LogType } from '../types/logs';
 import './LogsPage.css';
 
 const { Text } = Typography;
-const { RangePicker } = DatePicker;
 
 const typeMap: Record<LogType, { color: string; label: string }> = {
   sales: { color: 'blue', label: 'Satış' },
@@ -37,7 +36,7 @@ const typeMap: Record<LogType, { color: string; label: string }> = {
 export default function LogsPage() {
   const {
     filteredLogs, state, userFilter, typeFilter, search, userActivity,
-    setUserFilter, setTypeFilter, setSearch, handleExport, retry,
+    setUserFilter, setTypeFilter, setSearch, retry,
   } = useLogs();
 
   const [detailLog, setDetailLog] = useState<LogEntry | null>(null);
@@ -123,8 +122,7 @@ export default function LogsPage() {
           {state === 'loaded' && <Badge count={filteredLogs.length} color="#E32727" />}
         </div>
         <div className="logs-page__actions">
-          <RangePicker size="large" style={{ borderRadius: 8 }} />
-          <Button icon={<DownloadOutlined />} onClick={handleExport}>
+          <Button icon={<DownloadOutlined />} onClick={() => { message.info('Dışa aktarma özelliği henüz eklenmedi'); }}>
             Dışa Aktar
           </Button>
         </div>
@@ -215,7 +213,7 @@ export default function LogsPage() {
           columns={columns}
           dataSource={filteredLogs}
           rowKey="id"
-          pagination={{ pageSize: 25, showSizeChanger: false, showTotal: (t) => `Toplam ${t} log` }}
+          pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (t) => `Toplam ${t} log` }}
           style={{ background: '#fff', borderRadius: 12 }}
           scroll={{ x: 1000 }}
           locale={{ emptyText: 'Filtrelere uygun log bulunamadı' }}

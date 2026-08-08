@@ -1,606 +1,913 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import {
   Alert,
   Badge,
   Button,
   Descriptions,
-  Divider,
   Drawer,
   Form,
   Input,
   InputNumber,
   Modal,
+  Radio,
   Select,
   Skeleton,
   Space,
-  Steps,
   Table,
   Tag,
   Typography,
+  message,
 } from 'antd';
 import {
   CameraOutlined,
+  CheckCircleOutlined,
+  CloseOutlined,
   DeleteOutlined,
   EyeOutlined,
   FilePdfOutlined,
+  HistoryOutlined,
   PlusOutlined,
+  PrinterOutlined,
   ReloadOutlined,
   SearchOutlined,
   ShoppingCartOutlined,
-  SwapOutlined,
+  UserOutlined,
+  WalletOutlined,
 } from '@ant-design/icons';
 import { useSales } from '../hooks/useSales';
-import type { Sale, SaleItem } from '../types/sales';
-import type { SaleStep } from '../types/sales';
+import type { Sale, SaleItem, PaymentMethod } from '../types/sales';
 import './SalesPage.css';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
+
+const STATUS_MAP: Record<string, { color: string; label: string }> = {
+  bitti: { color: 'green', label: 'Tamamlandı' },
+  beklemede: { color: 'orange', label: 'Beklemede' },
+  iptal: { color: 'red', label: 'İptal' },
+  taslak: { color: 'default', label: 'Taslak' },
+};
+
+const PAYMENT_LABELS: Record<PaymentMethod, string> = {
+  kart: 'Kredi Kartı',
+  nakit: 'Nakit',
+  havale: 'Havale/EFT',
+};
+
+const PAYMENT_ICONS: Record<PaymentMethod, string> = {
+  kart: '💳',
+  nakit: '💵',
+  havale: '🏦',
+};
+
+type FlowStep = 'cart' | 'customer' | 'proforma';
 
 export default function SalesPage() {
   const {
-    filteredSales, state, view, step, filter, search,
-    customers, products, selectedCustomer, cartItems,
-    setView, setStep, setFilter, setSearch, setSelectedCustomer, setCartItems,
+    filteredSales, state, search, statusFilter,
+    customers, products, cartItems, showSalesList,
+    setSearch, setStatusFilter, setShowSalesList, setCartItems,
     addToCart, updateCartItem, removeCartItem,
-    handleCreateSale, handleConvertToInvoice, handleDeleteSale,
+    handleCreateSale, handleUpdateStatus, handleDeleteSale,
     retry,
   } = useSales();
 
-  const [barcodeOpen, setBarcodeOpen] = useState(false);
-  const [barcodeInput, setBarcodeInput] = useState('');
-  const [barcodeResult, setBarcodeResult] = useState<string | null>(null);
+  const [productSearch, setProductSearch] = useState('');
+  const [flowStep, setFlowStep] = useState<FlowStep>('cart');
+  const [customerForm] = Form.useForm();
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | undefined>(undefined);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('nakit');
   const [detailSale, setDetailSale] = useState<Sale | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Sale | null>(null);
-  const [convertTarget, setConvertTarget] = useState<Sale | null>(null);
-  const [newCustomerForm] = Form.useForm();
-  const [showNewCustomer, setShowNewCustomer] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previewSale, setPreviewSale] = useState<Sale | null>(null);
+
+  const [barcodeOpen, setBarcodeOpen] = useState(false);
+  const [barcodeInput, setBarcodeInput] = useState('');
+  const [barcodeResult, setBarcodeResult] = useState<{ msg: string; ok: boolean } | null>(null);
+  const barcodeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const barcodeInputRef = useRef<any>(null);
 
   const subtotal = cartItems.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
   const discountTotal = cartItems.reduce((sum, i) => sum + i.discountAmount, 0);
   const taxAmount = (subtotal - discountTotal) * 0.2;
   const grandTotal = subtotal - discountTotal + taxAmount;
 
+  const filteredProducts = products.filter((p) => {
+    if (!productSearch.trim()) return false;
+    const q = productSearch.toLowerCase();
+    return p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q);
+  });
+
+  const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
+
+  const handleProductSelect = (productId: string | undefined) => {
+    if (!productId) return;
+    addToCart(productId);
+    setProductSearch('');
+  };
+
+  const showBarcodeResult = useCallback((msg: string, ok: boolean) => {
+    if (barcodeTimeoutRef.current) clearTimeout(barcodeTimeoutRef.current);
+    setBarcodeResult({ msg, ok });
+    barcodeTimeoutRef.current = setTimeout(() => setBarcodeResult(null), 2000);
+  }, []);
+
   const handleBarcodeSubmit = () => {
     if (!barcodeInput.trim()) return;
     const product = products.find((p) => p.code === barcodeInput.trim());
     if (product) {
       addToCart(product.id);
-      setBarcodeResult(`${product.name} sepete eklendi`);
-      setTimeout(() => setBarcodeResult(null), 2000);
+      showBarcodeResult(`${product.name} sepete eklendi`, true);
     } else {
-      setBarcodeResult('Ürün bulunamadı');
-      setTimeout(() => setBarcodeResult(null), 2000);
+      showBarcodeResult('Ürün bulunamadı', false);
     }
     setBarcodeInput('');
   };
 
-  const handleAddCustomer = () => {
-    newCustomerForm.validateFields().then((values) => {
-      setSelectedCustomer({
-        id: `new-${Date.now()}`,
-        name: values.name,
-        phone: values.phone,
-        email: values.email,
-        address: values.address,
-      });
-      setShowNewCustomer(false);
-      newCustomerForm.resetFields();
-      setStep(2);
+  const openBarcode = () => {
+    setBarcodeOpen(true);
+    setBarcodeInput('');
+    setBarcodeResult(null);
+    setTimeout(() => barcodeInputRef.current?.focus(), 100);
+  };
+
+  const goToCustomer = () => {
+    if (cartItems.length === 0) {
+      message.warning('Sepete en az bir ürün ekleyin');
+      return;
+    }
+    setFlowStep('customer');
+  };
+
+  const handleCustomerNext = async () => {
+    try {
+      await customerForm.validateFields();
+      const values = customerForm.getFieldsValue();
+      const now = new Date().toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+      const preview: Sale = {
+        id: 'preview',
+        bayiId: 'd1',
+        personelId: 'u1',
+        musteriId: selectedCustomerId || `new-${Date.now()}`,
+        musteriAdi: selectedCustomer ? selectedCustomer.fullName : values.fullName,
+        musteriTelefon: selectedCustomer ? selectedCustomer.phone : values.phone,
+        musteriEmail: selectedCustomer?.email || values.email,
+        items: cartItems,
+        toplamTutar: grandTotal,
+        odemeYontemi: paymentMethod,
+        durum: 'taslak',
+        createdAt: now,
+        updatedAt: now,
+      };
+      setPreviewSale(preview);
+      setFlowStep('proforma');
+    } catch {
+      // validation failed
+    }
+  };
+
+  const handleDownloadPDF = () => {
+    window.print();
+  };
+
+  const handleCompleteSale = () => {
+    if (!previewSale) return;
+    Modal.confirm({
+      title: 'Satışı Tamamla',
+      icon: <CheckCircleOutlined style={{ color: '#22C55E' }} />,
+      content: (
+        <div>
+          <p>Bu satışı tamamlamak istediğinize emin misiniz?</p>
+          <div style={{ background: '#F8FAFC', borderRadius: 10, padding: 12, marginTop: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+              <span style={{ color: '#64748B' }}>Müşteri:</span>
+              <strong>{previewSale.musteriAdi}</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: '#64748B' }}>Tutar:</span>
+              <strong style={{ color: '#E32727' }}>₺{grandTotal.toFixed(2)}</strong>
+            </div>
+          </div>
+        </div>
+      ),
+      okText: 'Evet, Satışı Bitir',
+      cancelText: 'Hayır, Taslak Olarak Kaydet',
+      okButtonProps: { danger: true, type: 'primary' as const, style: { borderRadius: 10 } },
+      cancelButtonProps: { style: { borderRadius: 10 } },
+      className: 'sales-page__confirm-modal',
+      onOk: async () => {
+        setIsSubmitting(true);
+        try {
+          await handleCreateSale({
+            bayiId: previewSale.bayiId,
+            personelId: previewSale.personelId,
+            musteriId: previewSale.musteriId,
+            musteriAdi: previewSale.musteriAdi,
+            musteriTelefon: previewSale.musteriTelefon,
+            musteriEmail: previewSale.musteriEmail,
+            odemeYontemi: previewSale.odemeYontemi,
+            durum: 'bitti',
+          });
+          message.success('Satış başarıyla tamamlandı');
+          resetFlow();
+        } catch {
+          message.error('Satış tamamlanırken hata oluştu');
+        } finally {
+          setIsSubmitting(false);
+        }
+      },
+      onCancel: async () => {
+        setIsSubmitting(true);
+        try {
+          await handleCreateSale({
+            bayiId: previewSale.bayiId,
+            personelId: previewSale.personelId,
+            musteriId: previewSale.musteriId,
+            musteriAdi: previewSale.musteriAdi,
+            musteriTelefon: previewSale.musteriTelefon,
+            musteriEmail: previewSale.musteriEmail,
+            odemeYontemi: previewSale.odemeYontemi,
+            durum: 'taslak',
+          });
+          message.success('Satış taslak olarak kaydedildi');
+          resetFlow();
+        } catch {
+          message.error('Taslak kaydedilirken hata oluştu');
+        } finally {
+          setIsSubmitting(false);
+        }
+      },
     });
+  };
+
+  const resetFlow = () => {
+    setFlowStep('cart');
+    setPreviewSale(null);
+    setSelectedCustomerId(undefined);
+    setPaymentMethod('nakit');
+    customerForm.resetFields();
+  };
+
+  const executeDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await handleDeleteSale(deleteTarget.id);
+      setDeleteTarget(null);
+      if (detailSale?.id === deleteTarget.id) setDetailSale(null);
+    } catch {
+      // handled in hook
+    }
   };
 
   const saleColumns = [
     {
-      title: 'Fatura No',
-      dataIndex: 'invoiceNo',
-      key: 'invoiceNo',
-      width: 140,
-      render: (no: string, record: Sale) => (
-        <Button type="link" size="small" onClick={() => setDetailSale(record)}>
-          {no}
-        </Button>
-      ),
+      title: 'Tarih', dataIndex: 'createdAt', key: 'createdAt', width: 140,
+      render: (date: string) => <Text style={{ fontSize: 13, color: '#64748B' }}>{date}</Text>,
     },
-    { title: 'Tarih', dataIndex: 'date', key: 'date', width: 140 },
     {
-      title: 'Müşteri',
-      key: 'customer',
-      width: 180,
+      title: 'Müşteri', key: 'customer', width: 180,
       render: (_: unknown, record: Sale) => (
         <div>
-          <Text strong>{record.customer.name}</Text>
+          <Text strong style={{ fontSize: 13 }}>{record.musteriAdi}</Text>
           <br />
-          <Text style={{ fontSize: 12, color: '#94A3B8' }}>{record.customer.phone}</Text>
+          <Text style={{ fontSize: 12, color: '#94A3B8' }}>{record.musteriTelefon}</Text>
         </div>
       ),
     },
     {
-      title: 'Ürün',
-      key: 'items',
-      width: 80,
-      align: 'center' as const,
+      title: 'Ürün', key: 'items', width: 70, align: 'center' as const,
       render: (_: unknown, record: Sale) => <Badge count={record.items.length} color="#E32727" />,
     },
     {
-      title: 'Toplam',
-      key: 'subtotal',
-      width: 110,
-      render: (_: unknown, record: Sale) => <Text strong>₺{record.subtotal.toLocaleString('tr-TR')}</Text>,
+      title: 'Tutar', key: 'total', width: 120,
+      render: (_: unknown, record: Sale) => <Text strong>₺{record.toplamTutar.toLocaleString('tr-TR')}</Text>,
     },
     {
-      title: 'İskonto',
-      key: 'discount',
-      width: 90,
-      render: (_: unknown, record: Sale) =>
-        record.discountTotal > 0 ? <Text style={{ color: '#E32727' }}>-₺{record.discountTotal.toLocaleString('tr-TR')}</Text> : <Text type="secondary">₺0</Text>,
+      title: 'Ödeme', dataIndex: 'odemeYontemi', key: 'odemeYontemi', width: 110,
+      render: (method: PaymentMethod) => (
+        <Tag>{PAYMENT_ICONS[method]} {PAYMENT_LABELS[method]}</Tag>
+      ),
     },
     {
-      title: 'Net Tutar',
-      key: 'grandTotal',
-      width: 120,
-      render: (_: unknown, record: Sale) => <Text strong style={{ color: '#22C55E' }}>₺{record.grandTotal.toLocaleString('tr-TR')}</Text>,
-    },
-    {
-      title: 'Tür',
-      dataIndex: 'type',
-      key: 'type',
-      width: 90,
-      render: (type: string) => <Tag color={type === 'invoice' ? 'green' : 'blue'}>{type === 'invoice' ? 'Fatura' : 'Proforma'}</Tag>,
-    },
-    {
-      title: 'Durum',
-      dataIndex: 'status',
-      key: 'status',
-      width: 100,
-      render: (status: string) => {
-        const map: Record<string, { color: string; label: string }> = {
-          pending: { color: 'orange', label: 'Bekliyor' },
-          completed: { color: 'green', label: 'Tamamlandı' },
-          cancelled: { color: 'red', label: 'İptal' },
-        };
-        const s = map[status] ?? { color: 'default', label: status };
+      title: 'Durum', dataIndex: 'durum', key: 'durum', width: 110,
+      render: (durum: string) => {
+        const s = STATUS_MAP[durum] ?? { color: 'default', label: durum };
         return <Tag color={s.color}>{s.label}</Tag>;
       },
     },
     {
-      title: '',
-      key: 'actions',
-      width: 130,
+      title: '', key: 'actions', width: 80,
       render: (_: unknown, record: Sale) => (
         <Space size={4}>
           <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => setDetailSale(record)} />
-          {record.type === 'proforma' && record.status === 'pending' && (
-            <Button type="text" size="small" icon={<SwapOutlined />} onClick={() => setConvertTarget(record)} title="Faturaya Çevir" />
-          )}
-          {record.type === 'invoice' && (
-            <Button type="text" size="small" icon={<FilePdfOutlined />} />
-          )}
           <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => setDeleteTarget(record)} />
         </Space>
       ),
     },
   ];
 
-  const cartColumns = [
+  const cartTableColumns = [
     { title: 'Ürün', dataIndex: 'productName', key: 'productName', ellipsis: true },
+    { title: 'Birim Fiyat', dataIndex: 'unitPrice', key: 'unitPrice', width: 90, render: (v: number) => `₺${v}` },
     {
-      title: 'Birim Fiyat',
-      dataIndex: 'unitPrice',
-      key: 'unitPrice',
-      width: 100,
-      render: (v: number) => `₺${v}`,
-    },
-    {
-      title: 'Adet',
-      key: 'quantity',
-      width: 80,
+      title: 'Adet', key: 'quantity', width: 80,
       render: (_: unknown, _record: SaleItem, index: number) => (
-        <InputNumber
-          min={1}
-          value={cartItems[index].quantity}
-          onChange={(v) => updateCartItem(index, { quantity: v ?? 1 })}
-          style={{ width: 60 }}
-        />
+        <InputNumber min={1} value={cartItems[index].quantity} onChange={(v) => updateCartItem(index, { quantity: v ?? 1 })} style={{ width: 60 }} />
       ),
     },
     {
-      title: 'İskonto %',
-      key: 'discountPercent',
-      width: 90,
+      title: 'İskonto %', key: 'discountPercent', width: 90,
       render: (_: unknown, _record: SaleItem, index: number) => (
-        <InputNumber
-          min={0}
-          max={100}
-          value={cartItems[index].discountPercent}
-          onChange={(v) => updateCartItem(index, { discountPercent: v ?? 0 })}
-          style={{ width: 60 }}
-          suffix="%"
-        />
+        <InputNumber min={0} max={100} value={cartItems[index].discountPercent} onChange={(v) => updateCartItem(index, { discountPercent: v ?? 0 })} style={{ width: 60 }} suffix="%" />
       ),
     },
     {
-      title: 'İskonto ₺',
-      key: 'discountAmount',
-      width: 90,
-      render: (_: unknown, _record: SaleItem, index: number) => (
-        <Text>₺{cartItems[index].discountAmount.toFixed(2)}</Text>
-      ),
+      title: 'Toplam', key: 'total', width: 100,
+      render: (_: unknown, _record: SaleItem, index: number) => <Text strong>₺{cartItems[index].total.toFixed(2)}</Text>,
     },
     {
-      title: 'Toplam',
-      key: 'total',
-      width: 100,
-      render: (_: unknown, _record: SaleItem, index: number) => (
-        <Text strong>₺{cartItems[index].total.toFixed(2)}</Text>
-      ),
-    },
-    {
-      title: '',
-      key: 'del',
-      width: 50,
+      title: '', key: 'del', width: 50,
       render: (_: unknown, _record: SaleItem, index: number) => (
         <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => removeCartItem(index)} />
       ),
     },
   ];
 
-  const renderListView = () => (
-    <>
-      <div className="sales-page__top-bar">
-        <div className="sales-page__title-row">
-          <h1 className="sales-page__title">Satış</h1>
-          {state === 'loaded' && <Badge count={filteredSales.length} color="#E32727" />}
-        </div>
-        <div className="sales-page__actions">
-          <Button type="primary" danger icon={<PlusOutlined />} onClick={() => { setView('new'); setStep(1); }}>
-            Yeni Satış
-          </Button>
-          <Input
-            prefix={<SearchOutlined />}
-            placeholder="Fatura no veya müşteri ara..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ width: 240 }}
-            allowClear
-          />
-        </div>
-      </div>
-
-      <div className="sales-page__filter-row">
-        {(['all', 'proforma', 'invoice', 'pending', 'completed'] as const).map((f) => (
-          <Tag
-            key={f}
-            color={filter === f ? 'red' : 'default'}
-            style={{ cursor: 'pointer', padding: '4px 12px', fontSize: 13 }}
-            onClick={() => setFilter(f)}
-          >
-            {f === 'all' ? 'Tümü' : f === 'proforma' ? 'Proforma' : f === 'invoice' ? 'Fatura' : f === 'pending' ? 'Bekliyor' : 'Tamamlandı'}
-          </Tag>
-        ))}
-      </div>
-
-      {state === 'loading' && (
-        <div style={{ background: '#fff', borderRadius: 12, padding: 24 }}>
-          <Skeleton active paragraph={{ rows: 8 }} />
-        </div>
-      )}
-
-      {state === 'error' && (
-        <Alert
-          message="Satış verileri yüklenirken hata oluştu"
-          type="error" showIcon
-          action={<Button size="small" danger icon={<ReloadOutlined />} onClick={retry}>Yeniden Dene</Button>}
-          style={{ borderRadius: 10 }}
-        />
-      )}
-
-      {state === 'empty' && (
-        <div className="sales-page__empty">
-          <ShoppingCartOutlined className="sales-page__empty-icon" />
-          <Text className="sales-page__empty-text">Henüz satış kaydı yok</Text>
-          <Button type="primary" danger icon={<PlusOutlined />} onClick={() => { setView('new'); setStep(1); }}>
-            İlk Satışı Yap
-          </Button>
-        </div>
-      )}
-
-      {state === 'loaded' && (
-        <Table<Sale>
-          columns={saleColumns}
-          dataSource={filteredSales}
-          rowKey="id"
-          pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (t) => `Toplam ${t} satış` }}
-          style={{ background: '#fff', borderRadius: 12 }}
-          scroll={{ x: 1100 }}
-        />
-      )}
-    </>
-  );
-
-  const renderNewSaleView = () => (
-    <>
-      <div className="sales-page__top-bar">
-        <div className="sales-page__title-row">
-          <h1 className="sales-page__title">Yeni Satış</h1>
-        </div>
-        <Button onClick={() => { setView('list'); setStep(1); setCartItems([]); setSelectedCustomer(null); }}>
-          Listeye Dön
-        </Button>
-      </div>
-
-      <Steps
-        current={step - 1}
-        onChange={(s) => setStep((s + 1) as SaleStep)}
-        style={{ marginBottom: 24 }}
-        items={[
-          { title: 'Müşteri Seçimi' },
-          { title: 'Ürün Ekleme' },
-          { title: 'Önizleme & Onay' },
-        ]}
+  if (state === 'error') {
+    return (
+      <Alert
+        message="Satış verileri yüklenirken hata oluştu"
+        type="error" showIcon
+        action={<Button size="small" danger icon={<ReloadOutlined />} onClick={retry}>Yeniden Dene</Button>}
+        style={{ borderRadius: 10, margin: 24 }}
       />
+    );
+  }
 
-      {step === 1 && (
-        <div className="sales-page__step-content">
-          <Title level={4} className="sales-page__step-title">Müşteri Seçimi</Title>
-
-          <Select
-            showSearch
-            placeholder="Müşteri adı veya telefon ile ara..."
-            filterOption={(input, option) => (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())}
-            options={customers.map((c) => ({ value: c.id, label: `${c.name} - ${c.phone}` }))}
-            onChange={(id) => {
-              const customer = customers.find((c) => c.id === id);
-              setSelectedCustomer(customer ?? null);
-              if (customer) setStep(2);
-            }}
-            style={{ width: '100%', marginBottom: 16 }}
-            size="large"
-            value={selectedCustomer?.id}
-          />
-
-          <Button type="link" onClick={() => setShowNewCustomer(!showNewCustomer)}>
-            {showNewCustomer ? 'Vazgeç' : '+ Yeni Müşteri Ekle'}
-          </Button>
-
-          {showNewCustomer && (
-            <Form form={newCustomerForm} layout="vertical" style={{ marginTop: 16, maxWidth: 500 }}>
-              <Form.Item name="name" label="Ad Soyad" rules={[{ required: true, message: 'Ad soyad gerekli' }]}>
-                <Input placeholder="Ad Soyad" />
-              </Form.Item>
-              <Form.Item name="phone" label="Telefon" rules={[{ required: true, message: 'Telefon gerekli' }]}>
-                <Input placeholder="05xx xxx xx xx" />
-              </Form.Item>
-              <Form.Item name="email" label="E-posta">
-                <Input placeholder="E-posta" type="email" />
-              </Form.Item>
-              <Form.Item name="address" label="Adres">
-                <Input.TextArea rows={2} placeholder="Adres" />
-              </Form.Item>
-              <Button type="primary" danger onClick={handleAddCustomer}>
-                Kaydet ve Devam Et
+  if (showSalesList) {
+    return (
+      <div className="sales-page">
+        <div className="sales-page__list-section">
+          <div className="sales-page__top-bar">
+            <div className="sales-page__title-row">
+              <h1 className="sales-page__title">Satışlarım</h1>
+              {state === 'loaded' && <Badge count={filteredSales.length} color="#E32727" />}
+            </div>
+            <div className="sales-page__actions">
+              <Button type="primary" danger icon={<PlusOutlined />} onClick={() => { setShowSalesList(false); setCartItems([]); resetFlow(); }}>
+                Yeni Satış
               </Button>
-            </Form>
+              <Input
+                prefix={<SearchOutlined />}
+                placeholder="Müşteri adı veya telefon ara..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{ width: 260 }}
+                allowClear
+              />
+            </div>
+          </div>
+
+          <div className="sales-page__filter-row">
+            {(['all', 'bitti', 'beklemede', 'taslak', 'iptal'] as const).map((f) => (
+              <Tag
+                key={f}
+                color={statusFilter === f ? 'red' : 'default'}
+                style={{ cursor: 'pointer', padding: '4px 12px', fontSize: 13 }}
+                onClick={() => setStatusFilter(f)}
+              >
+                {f === 'all' ? 'Tümü' : STATUS_MAP[f]?.label ?? f}
+              </Tag>
+            ))}
+          </div>
+
+          {state === 'loading' && (
+            <div style={{ background: '#fff', borderRadius: 14, padding: 24 }}>
+              <Skeleton active paragraph={{ rows: 8 }} />
+            </div>
+          )}
+
+          {state === 'empty' && (
+            <div className="sales-page__empty">
+              <ShoppingCartOutlined className="sales-page__empty-icon" />
+              <Text className="sales-page__empty-text">Henüz satış kaydı yok</Text>
+              <Button type="primary" danger icon={<PlusOutlined />} onClick={() => { setShowSalesList(false); setCartItems([]); }}>
+                İlk Satışı Yap
+              </Button>
+            </div>
+          )}
+
+          {state === 'loaded' && (
+            <Table<Sale>
+              columns={saleColumns}
+              dataSource={filteredSales}
+              rowKey="id"
+              pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (t) => `Toplam ${t} satış` }}
+              style={{ background: '#fff', borderRadius: 14 }}
+              scroll={{ x: 800 }}
+            />
           )}
         </div>
-      )}
 
-      {step === 2 && (
-        <div className="sales-page__step-content">
-          <Title level={4} className="sales-page__step-title">Ürün Ekleme</Title>
-
-          <Space style={{ marginBottom: 16 }} size={12}>
-            <Select
-              showSearch
-              placeholder="Ürün ara (isim veya kod)..."
-              filterOption={(input, option) => (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())}
-              options={products.map((p) => ({ value: p.id, label: `${p.name} (${p.code}) - ₺${p.price}` }))}
-              onChange={(id) => addToCart(id)}
-              style={{ width: 400 }}
-              size="large"
-            />
-            <Button type="primary" danger icon={<CameraOutlined />} onClick={() => setBarcodeOpen(true)}>
-              Barkod Okut
-            </Button>
-          </Space>
-
-          {cartItems.length > 0 ? (
+        <Drawer
+          title={detailSale ? `Satış Detayı` : ''}
+          open={!!detailSale}
+          onClose={() => setDetailSale(null)}
+          width={560}
+        >
+          {detailSale && (
             <>
+              <Descriptions bordered column={1} size="small" style={{ marginBottom: 16 }}>
+                <Descriptions.Item label="Müşteri">{detailSale.musteriAdi}</Descriptions.Item>
+                <Descriptions.Item label="Telefon">{detailSale.musteriTelefon}</Descriptions.Item>
+                {detailSale.musteriEmail && <Descriptions.Item label="E-posta">{detailSale.musteriEmail}</Descriptions.Item>}
+                <Descriptions.Item label="Ödeme Yöntemi">
+                  <Tag>{PAYMENT_ICONS[detailSale.odemeYontemi]} {PAYMENT_LABELS[detailSale.odemeYontemi]}</Tag>
+                </Descriptions.Item>
+                <Descriptions.Item label="Durum">
+                  <Tag color={STATUS_MAP[detailSale.durum]?.color}>{STATUS_MAP[detailSale.durum]?.label}</Tag>
+                </Descriptions.Item>
+                <Descriptions.Item label="Tarih">{detailSale.createdAt}</Descriptions.Item>
+              </Descriptions>
+
               <Table<SaleItem>
-                columns={cartColumns}
-                dataSource={cartItems}
+                columns={[
+                  { title: 'Ürün', dataIndex: 'productName', key: 'productName' },
+                  { title: 'Birim Fiyat', dataIndex: 'unitPrice', key: 'unitPrice', render: (v: number) => `₺${v}` },
+                  { title: 'Adet', dataIndex: 'quantity', key: 'quantity' },
+                  { title: 'İskonto', key: 'discount', render: (_: unknown, r: SaleItem) => r.discountAmount > 0 ? `₺${r.discountAmount}` : '-' },
+                  { title: 'Toplam', key: 'total', render: (_: unknown, r: SaleItem) => `₺${r.total.toFixed(2)}` },
+                ]}
+                dataSource={detailSale.items}
                 rowKey="productId"
                 pagination={false}
                 size="small"
               />
 
-              <div className="sales-page__cart-summary">
-                <div className="sales-page__cart-row">
+              <div style={{ marginTop: 16, padding: 16, background: '#F8FAFC', borderRadius: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 18, fontWeight: 700, color: '#E32727' }}>
+                  <span>Toplam Tutar</span>
+                  <span>₺{detailSale.toplamTutar.toLocaleString('tr-TR')}</span>
+                </div>
+              </div>
+
+              {detailSale.durum === 'beklemede' && (
+                <div style={{ marginTop: 16, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                  <Button onClick={() => handleUpdateStatus(detailSale.id, 'bitti')}>Tamamlandı Olarak İşaretle</Button>
+                  <Button danger onClick={() => handleUpdateStatus(detailSale.id, 'iptal')}>İptal Et</Button>
+                </div>
+              )}
+              {detailSale.durum === 'taslak' && (
+                <div style={{ marginTop: 16, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                  <Button type="primary" danger onClick={() => handleUpdateStatus(detailSale.id, 'bitti')}>Satışı Tamamla</Button>
+                  <Button danger onClick={() => handleUpdateStatus(detailSale.id, 'iptal')}>İptal Et</Button>
+                </div>
+              )}
+            </>
+          )}
+        </Drawer>
+
+        <Modal
+          title="Satışı Sil"
+          open={!!deleteTarget}
+          onCancel={() => setDeleteTarget(null)}
+          onOk={executeDelete}
+          okText="Sil"
+          cancelText="İptal"
+          okButtonProps={{ danger: true, type: 'primary' }}
+        >
+          <p><strong>{deleteTarget?.musteriAdi}</strong> müşterisine ait satışı silmek istediğinize emin misiniz?</p>
+        </Modal>
+      </div>
+    );
+  }
+
+  if (flowStep === 'proforma' && previewSale) {
+    return (
+      <div className="sales-page">
+        <div className="sales-page__proforma-wrap">
+          <div className="sales-page__proforma-topbar">
+            <Button onClick={() => setFlowStep('customer')} style={{ borderRadius: 10 }}>
+              ← Geri Dön
+            </Button>
+            <h1>Proforma Fatura</h1>
+            <div />
+          </div>
+
+          <div className="sales-page__proforma">
+            <div className="sales-page__proforma-header">
+              <div className="sales-page__proforma-header-left">
+                <h2>PROFORMA</h2>
+                <span>{previewSale.createdAt}</span>
+              </div>
+              <div className="sales-page__proforma-header-right">
+                <Tag color="orange">Onay Bekliyor</Tag>
+              </div>
+            </div>
+
+            <div className="sales-page__proforma-body">
+              <div className="sales-page__proforma-info">
+                <div className="sales-page__proforma-info-block">
+                  <span className="sales-page__proforma-info-label">Müşteri</span>
+                  <span className="sales-page__proforma-info-value">{previewSale.musteriAdi}</span>
+                </div>
+                <div className="sales-page__proforma-info-block">
+                  <span className="sales-page__proforma-info-label">Telefon</span>
+                  <span className="sales-page__proforma-info-value">{previewSale.musteriTelefon}</span>
+                </div>
+                {previewSale.musteriEmail && (
+                  <div className="sales-page__proforma-info-block">
+                    <span className="sales-page__proforma-info-label">E-posta</span>
+                    <span className="sales-page__proforma-info-value">{previewSale.musteriEmail}</span>
+                  </div>
+                )}
+                <div className="sales-page__proforma-info-block">
+                  <span className="sales-page__proforma-info-label">Ödeme Yöntemi</span>
+                  <span className="sales-page__proforma-info-value">
+                    {PAYMENT_ICONS[previewSale.odemeYontemi]} {PAYMENT_LABELS[previewSale.odemeYontemi]}
+                  </span>
+                </div>
+              </div>
+
+              <div className="sales-page__proforma-table">
+                <Table<SaleItem>
+                  columns={[
+                    { title: 'Ürün', dataIndex: 'productName', key: 'productName' },
+                    { title: 'Birim Fiyat', dataIndex: 'unitPrice', key: 'unitPrice', width: 100, render: (v: number) => `₺${v}` },
+                    { title: 'Adet', dataIndex: 'quantity', key: 'quantity', width: 70, align: 'center' as const },
+                    { title: 'İskonto', key: 'discount', width: 80, render: (_: unknown, r: SaleItem) => r.discountPercent > 0 ? `%${r.discountPercent}` : '-' },
+                    { title: 'Tutar', key: 'total', width: 110, render: (_: unknown, r: SaleItem) => <Text strong>₺{r.total.toFixed(2)}</Text> },
+                  ]}
+                  dataSource={previewSale.items}
+                  rowKey="productId"
+                  pagination={false}
+                  size="small"
+                />
+              </div>
+
+              <div className="sales-page__proforma-totals">
+                <div className="sales-page__proforma-total-row">
                   <span>Ara Toplam</span>
                   <span>₺{subtotal.toLocaleString('tr-TR')}</span>
                 </div>
                 {discountTotal > 0 && (
-                  <div className="sales-page__cart-row">
+                  <div className="sales-page__proforma-total-row">
                     <span>İskonto</span>
                     <span style={{ color: '#E32727' }}>-₺{discountTotal.toLocaleString('tr-TR')}</span>
                   </div>
                 )}
-                <div className="sales-page__cart-row">
+                <div className="sales-page__proforma-total-row">
                   <span>KDV (%20)</span>
                   <span>₺{taxAmount.toFixed(2)}</span>
                 </div>
-                <div className="sales-page__cart-total">
+                <div className="sales-page__proforma-grand-total">
                   <span>Genel Toplam</span>
                   <span>₺{grandTotal.toFixed(2)}</span>
                 </div>
               </div>
 
-              <div style={{ marginTop: 20, textAlign: 'right' }}>
-                <Button type="primary" danger size="large" onClick={() => setStep(3)} disabled={!selectedCustomer}>
-                  Devam Et
+              <div className="sales-page__proforma-actions">
+                <Button icon={<PrinterOutlined />} onClick={handleDownloadPDF} style={{ borderRadius: 10 }}>
+                  Yazdır / PDF
+                </Button>
+                <Button
+                  type="primary"
+                  danger
+                  icon={<CheckCircleOutlined />}
+                  onClick={handleCompleteSale}
+                  loading={isSubmitting}
+                  style={{ borderRadius: 10, fontWeight: 600 }}
+                >
+                  Satışı Tamamla
                 </Button>
               </div>
-            </>
-          ) : (
-            <div style={{ textAlign: 'center', padding: 40, color: '#94A3B8' }}>
-              Ürün araması yapın veya barkod okutun
             </div>
-          )}
-        </div>
-      )}
-
-      {step === 3 && (
-        <div className="sales-page__step-content sales-page__preview">
-          <Title level={4} className="sales-page__step-title">Önizleme & Onay</Title>
-
-          <Descriptions bordered column={2} size="small">
-            <Descriptions.Item label="Fatura No">PRO-2026-XXX (Otomatik)</Descriptions.Item>
-            <Descriptions.Item label="Tarih">{new Date().toLocaleString('tr-TR')}</Descriptions.Item>
-            <Descriptions.Item label="Müşteri" span={2}>
-              {selectedCustomer?.name} — {selectedCustomer?.phone}
-            </Descriptions.Item>
-          </Descriptions>
-
-          <Divider />
-
-          <Table<SaleItem>
-            columns={[
-              { title: 'Ürün', dataIndex: 'productName', key: 'productName' },
-              { title: 'Birim Fiyat', dataIndex: 'unitPrice', key: 'unitPrice', render: (v: number) => `₺${v}` },
-              { title: 'Adet', dataIndex: 'quantity', key: 'quantity' },
-              { title: 'Toplam', key: 'total', render: (_: unknown, r: SaleItem) => `₺${r.total.toFixed(2)}` },
-            ]}
-            dataSource={cartItems}
-            rowKey="productId"
-            pagination={false}
-            size="small"
-          />
-
-          <div className="sales-page__cart-summary">
-            <div className="sales-page__cart-row"><span>Ara Toplam</span><span>₺{subtotal.toLocaleString('tr-TR')}</span></div>
-            {discountTotal > 0 && <div className="sales-page__cart-row"><span>İskonto</span><span style={{ color: '#E32727' }}>-₺{discountTotal.toLocaleString('tr-TR')}</span></div>}
-            <div className="sales-page__cart-row"><span>KDV (%20)</span><span>₺{taxAmount.toFixed(2)}</span></div>
-            <div className="sales-page__cart-total"><span>Genel Toplam</span><span>₺{grandTotal.toFixed(2)}</span></div>
           </div>
+        </div>
+      </div>
+    );
+  }
 
-          <div className="sales-page__preview-actions">
-            <Button onClick={() => setStep(2)}>Geri Dön</Button>
-            <Button onClick={() => handleCreateSale('proforma')}>Proforma Kaydet</Button>
-            <Button type="primary" danger onClick={() => handleCreateSale('invoice')}>
-              Faturaya Çevir
+  if (flowStep === 'customer') {
+    return (
+      <div className="sales-page">
+        <div className="sales-page__customer-step">
+          <div className="sales-page__customer-back">
+            <Button onClick={() => setFlowStep('cart')} style={{ borderRadius: 10 }}>
+              ← Sepete Dön
             </Button>
           </div>
+
+          <div className="sales-page__customer-header">
+            <div className="sales-page__customer-header-icon">
+              <UserOutlined />
+            </div>
+            <div className="sales-page__customer-header-title">Müşteri Bilgileri</div>
+            <div className="sales-page__customer-header-sub">Satışı tamamlamak için müşteri bilgilerini doldurun</div>
+          </div>
+
+          <div className="sales-page__customer-summary">
+            <div className="sales-page__customer-summary-row">
+              <span>Ürün Adedi</span>
+              <span>{cartItems.reduce((s, i) => s + i.quantity, 0)}</span>
+            </div>
+            <div className="sales-page__customer-summary-row">
+              <span>Ara Toplam</span>
+              <span>₺{subtotal.toLocaleString('tr-TR')}</span>
+            </div>
+            {discountTotal > 0 && (
+              <div className="sales-page__customer-summary-row">
+                <span>İskonto</span>
+                <span style={{ color: '#E32727' }}>-₺{discountTotal.toLocaleString('tr-TR')}</span>
+              </div>
+            )}
+            <div className="sales-page__customer-summary-total">
+              <span>Genel Toplam</span>
+              <span>₺{grandTotal.toFixed(2)}</span>
+            </div>
+          </div>
+
+          <Form form={customerForm} layout="vertical" size="large">
+            <Form.Item label="Mevcut Müşteri">
+              <Select
+                showSearch
+                allowClear
+                placeholder="Müşteri seçin (opsiyonel)"
+                value={selectedCustomerId}
+                onChange={(id) => {
+                  setSelectedCustomerId(id);
+                  if (id) {
+                    const c = customers.find((x) => x.id === id);
+                    if (c) {
+                      customerForm.setFieldsValue({ fullName: c.fullName, phone: c.phone, email: c.email });
+                    }
+                  } else {
+                    customerForm.resetFields();
+                  }
+                }}
+                filterOption={(input, option) => (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())}
+                options={customers.map((c) => ({ value: c.id, label: `${c.fullName} — ${c.phone}` }))}
+              />
+            </Form.Item>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+              <Form.Item name="fullName" label="Ad Soyad" rules={[{ required: !selectedCustomerId, message: 'Ad soyad gerekli' }]}>
+                <Input placeholder="Ad Soyad" disabled={!!selectedCustomerId} />
+              </Form.Item>
+              <Form.Item name="phone" label="Telefon" rules={[{ required: !selectedCustomerId, message: 'Telefon gerekli' }]}>
+                <Input placeholder="05xx xxx xx xx" disabled={!!selectedCustomerId} />
+              </Form.Item>
+            </div>
+
+            <Form.Item name="email" label="E-posta">
+              <Input placeholder="E-posta (opsiyonel)" type="email" disabled={!!selectedCustomerId} />
+            </Form.Item>
+
+            <Form.Item label="Ödeme Yöntemi" required>
+              <Radio.Group
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                style={{ display: 'flex', gap: 10, width: '100%' }}
+              >
+                {(['nakit', 'kart', 'havale'] as PaymentMethod[]).map((m) => (
+                  <Radio.Button
+                    key={m}
+                    value={m}
+                    style={{
+                      flex: 1, textAlign: 'center', height: 44, lineHeight: '44px',
+                      borderRadius: 10, fontSize: 14, fontWeight: 500,
+                    }}
+                  >
+                    {PAYMENT_ICONS[m]} {PAYMENT_LABELS[m]}
+                  </Radio.Button>
+                ))}
+              </Radio.Group>
+            </Form.Item>
+          </Form>
+
+          <Button
+            type="primary"
+            danger
+            block
+            icon={<FilePdfOutlined />}
+            onClick={handleCustomerNext}
+            style={{ borderRadius: 12, height: 48, fontSize: 15, fontWeight: 600, marginTop: 4 }}
+          >
+            Proforma Önizleme
+          </Button>
         </div>
-      )}
-    </>
-  );
+      </div>
+    );
+  }
 
   return (
     <div className="sales-page">
-      {view === 'list' ? renderListView() : renderNewSaleView()}
+      {cartItems.length === 0 ? (
+        <div className="sales-page__spotlight">
+          <div className="sales-page__spotlight-brand">
+            <div className="sales-page__spotlight-icon">
+              <ShoppingCartOutlined />
+            </div>
+            <div className="sales-page__spotlight-title">Yeni Satış</div>
+            <div className="sales-page__spotlight-sub">
+              Ürün adı, kodu ile arama yapın veya barkod okutarak sepete ekleyin
+            </div>
+          </div>
 
-      {/* Barcode Scanner Modal */}
+          <div className="sales-page__spotlight-search">
+            <Select
+              showSearch
+              value={undefined}
+              placeholder="Ürün adı veya kodu ile arayın..."
+              filterOption={false}
+              onSearch={setProductSearch}
+              onSelect={handleProductSelect}
+              onBlur={() => setProductSearch('')}
+              prefix={<SearchOutlined style={{ color: '#94A3B8', fontSize: 18 }} />}
+              options={filteredProducts.map((p) => ({
+                value: p.id,
+                label: (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 14 }}>{p.name}</div>
+                      <div style={{ fontSize: 12, color: '#94A3B8' }}>{p.code}</div>
+                    </div>
+                    <Text strong style={{ color: '#E32727', fontSize: 15 }}>₺{p.price}</Text>
+                  </div>
+                ),
+              }))}
+              notFoundContent={productSearch ? 'Ürün bulunamadı' : 'Aramak için yazmaya başlayın'}
+              suffixIcon={null}
+            />
+            <button className="sales-page__spotlight-barcode-btn" onClick={openBarcode} title="Barkod Okut">
+              <CameraOutlined />
+            </button>
+          </div>
+
+          <div className="sales-page__spotlight-actions">
+            <Button icon={<HistoryOutlined />} onClick={() => setShowSalesList(true)} style={{ borderRadius: 10, height: 42 }}>
+              Satışlarım
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="sales-page__workspace">
+          <div className="sales-page__workspace-left">
+            <div className="sales-page__workspace-header">
+              <div className="sales-page__workspace-title">
+                <ShoppingCartOutlined />
+                Sepet
+                <span className="sales-page__workspace-title-badge">{cartItems.length}</span>
+              </div>
+              <Space>
+                <Button icon={<HistoryOutlined />} onClick={() => setShowSalesList(true)} style={{ borderRadius: 10 }}>
+                  Satışlarım
+                </Button>
+                <Button danger onClick={() => setCartItems([])} style={{ borderRadius: 10 }}>
+                  Temizle
+                </Button>
+              </Space>
+            </div>
+
+            <div className="sales-page__workspace-search">
+              <Select
+                showSearch
+                value={undefined}
+                placeholder="Ürün eklemeye devam et..."
+                filterOption={false}
+                onSearch={setProductSearch}
+                onSelect={handleProductSelect}
+                onBlur={() => setProductSearch('')}
+                prefix={<SearchOutlined style={{ color: '#94A3B8', fontSize: 16 }} />}
+                options={filteredProducts.map((p) => ({
+                  value: p.id,
+                  label: (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 14 }}>{p.name}</div>
+                        <div style={{ fontSize: 12, color: '#94A3B8' }}>{p.code}</div>
+                      </div>
+                      <Text strong style={{ color: '#E32727', fontSize: 15 }}>₺{p.price}</Text>
+                    </div>
+                  ),
+                }))}
+                notFoundContent={productSearch ? 'Ürün bulunamadı' : 'Aramak için yazmaya başlayın'}
+                suffixIcon={null}
+              />
+              <button className="sales-page__workspace-barcode-btn" onClick={openBarcode} title="Barkod Okut">
+                <CameraOutlined />
+              </button>
+            </div>
+
+            <div className="sales-page__product-table-wrap">
+              <Table<SaleItem>
+                columns={cartTableColumns}
+                dataSource={cartItems}
+                rowKey="productId"
+                pagination={false}
+                size="middle"
+              />
+            </div>
+          </div>
+
+          <div className="sales-page__cart-sidebar">
+            <div className="sales-page__cart-sidebar-title">
+              <WalletOutlined />
+              Sipariş Özeti
+            </div>
+
+            <div className="sales-page__cart-sidebar-items">
+              {cartItems.map((item, index) => (
+                <div className="sales-page__cart-sidebar-item" key={item.productId}>
+                  <div className="sales-page__cart-sidebar-item-qty">{item.quantity}</div>
+                  <div className="sales-page__cart-sidebar-item-info">
+                    <div className="sales-page__cart-sidebar-item-name">{item.productName}</div>
+                    <div className="sales-page__cart-sidebar-item-price">₺{item.unitPrice} / adet</div>
+                  </div>
+                  <div className="sales-page__cart-sidebar-item-total">₺{item.total.toFixed(2)}</div>
+                  <CloseOutlined className="sales-page__cart-sidebar-item-del" onClick={() => removeCartItem(index)} />
+                </div>
+              ))}
+            </div>
+
+            <div className="sales-page__cart-sidebar-divider" />
+
+            <div className="sales-page__cart-sidebar-summary">
+              <div className="sales-page__cart-sidebar-row">
+                <span>Ara Toplam</span>
+                <span>₺{subtotal.toLocaleString('tr-TR')}</span>
+              </div>
+              {discountTotal > 0 && (
+                <div className="sales-page__cart-sidebar-row">
+                  <span>İskonto</span>
+                  <span style={{ color: '#E32727' }}>-₺{discountTotal.toLocaleString('tr-TR')}</span>
+                </div>
+              )}
+              <div className="sales-page__cart-sidebar-row">
+                <span>KDV (%20)</span>
+                <span>₺{taxAmount.toFixed(2)}</span>
+              </div>
+              <div className="sales-page__cart-sidebar-total">
+                <span>Genel Toplam</span>
+                <span>₺{grandTotal.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div className="sales-page__cart-sidebar-actions">
+              <Button
+                type="primary"
+                danger
+                block
+                icon={<WalletOutlined />}
+                onClick={goToCustomer}
+                style={{ borderRadius: 12, height: 48, fontSize: 15, fontWeight: 600 }}
+              >
+                Satış Yap
+              </Button>
+              <Button block onClick={() => setCartItems([])} style={{ borderRadius: 12 }}>
+                İptal
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {barcodeOpen && (
         <div className="sales-page__barcode-overlay" onClick={() => setBarcodeOpen(false)}>
-          <Button className="sales-page__barcode-close" type="text" onClick={() => setBarcodeOpen(false)} style={{ color: '#fff', fontSize: 24 }}>
-            ✕
-          </Button>
+          <div className="sales-page__barcode-close" onClick={() => setBarcodeOpen(false)}>✕</div>
           <div className="sales-page__barcode-viewport" onClick={(e) => e.stopPropagation()}>
             <div className="sales-page__barcode-line" />
           </div>
-          <div className="sales-page__barcode-input">
+          <div className="sales-page__barcode-input-wrap" onClick={(e) => e.stopPropagation()}>
             <Input.Search
-              placeholder="Barkod numarası girin..."
+              ref={barcodeInputRef}
+              placeholder="Barkod numarası girin veya tarayıcıdan okutun..."
               value={barcodeInput}
               onChange={(e) => setBarcodeInput(e.target.value)}
               onSearch={handleBarcodeSubmit}
-              enterButton="Tara"
+              enterButton="Ekle"
               size="large"
-              style={{ background: '#fff' }}
             />
           </div>
           {barcodeResult && (
-            <Text style={{ color: barcodeResult.includes('eklendi') ? '#22C55E' : '#E32727', marginTop: 12, fontSize: 16 }}>
-              {barcodeResult}
-            </Text>
+            <div className={`sales-page__barcode-result ${barcodeResult.ok ? 'sales-page__barcode-result--success' : 'sales-page__barcode-result--error'}`}>
+              {barcodeResult.ok ? '✓' : '✕'} {barcodeResult.msg}
+            </div>
           )}
         </div>
       )}
 
-      {/* Invoice Detail Drawer */}
-      <Drawer
-        title={detailSale ? `Fatura: ${detailSale.invoiceNo}` : ''}
-        open={!!detailSale}
-        onClose={() => setDetailSale(null)}
-        width={600}
-        extra={
-          detailSale && (
-            <Space>
-              <Tag color={detailSale.type === 'invoice' ? 'green' : 'blue'}>
-                {detailSale.type === 'invoice' ? 'Fatura' : 'Proforma'}
-              </Tag>
-              <Button icon={<FilePdfOutlined />}>Yazdır</Button>
-            </Space>
-          )
-        }
-      >
-        {detailSale && (
-          <>
-            <Descriptions bordered column={1} size="small" style={{ marginBottom: 16 }}>
-              <Descriptions.Item label="Fatura No">{detailSale.invoiceNo}</Descriptions.Item>
-              <Descriptions.Item label="Tarih">{detailSale.date}</Descriptions.Item>
-              <Descriptions.Item label="Müşteri">{detailSale.customer.name}</Descriptions.Item>
-              <Descriptions.Item label="Telefon">{detailSale.customer.phone}</Descriptions.Item>
-              {detailSale.customer.email && <Descriptions.Item label="E-posta">{detailSale.customer.email}</Descriptions.Item>}
-            </Descriptions>
-
-            <Table<SaleItem>
-              columns={[
-                { title: 'Ürün', dataIndex: 'productName', key: 'productName' },
-                { title: 'Birim Fiyat', dataIndex: 'unitPrice', key: 'unitPrice', render: (v: number) => `₺${v}` },
-                { title: 'Adet', dataIndex: 'quantity', key: 'quantity' },
-                { title: 'İskonto', key: 'discount', render: (_: unknown, r: SaleItem) => r.discountAmount > 0 ? `₺${r.discountAmount}` : '-' },
-                { title: 'Toplam', key: 'total', render: (_: unknown, r: SaleItem) => `₺${r.total.toFixed(2)}` },
-              ]}
-              dataSource={detailSale.items}
-              rowKey="productId"
-              pagination={false}
-              size="small"
-            />
-
-            <div className="sales-page__cart-summary" style={{ marginTop: 16 }}>
-              <div className="sales-page__cart-row"><span>Ara Toplam</span><span>₺{detailSale.subtotal.toLocaleString('tr-TR')}</span></div>
-              {detailSale.discountTotal > 0 && <div className="sales-page__cart-row"><span>İskonto</span><span style={{ color: '#E32727' }}>-₺{detailSale.discountTotal.toLocaleString('tr-TR')}</span></div>}
-              <div className="sales-page__cart-row"><span>KDV (%{detailSale.taxRate})</span><span>₺{detailSale.taxAmount.toFixed(2)}</span></div>
-              <div className="sales-page__cart-total"><span>Genel Toplam</span><span>₺{detailSale.grandTotal.toFixed(2)}</span></div>
-            </div>
-          </>
-        )}
-      </Drawer>
-
-      {/* Convert to Invoice Modal */}
-      <Modal
-        title="Faturaya Çevir"
-        open={!!convertTarget}
-        onCancel={() => setConvertTarget(null)}
-        onOk={() => { if (convertTarget) { handleConvertToInvoice(convertTarget.id); setConvertTarget(null); } }}
-        okText="Faturaya Çevir"
-        cancelText="İptal"
-        okButtonProps={{ danger: true, type: 'primary' }}
-      >
-        <p><strong>{convertTarget?.invoiceNo}</strong> nolu proformayı faturaya çevirmek istediğinize emin misiniz?</p>
-      </Modal>
-
-      {/* Delete Confirmation */}
       <Modal
         title="Satışı Sil"
         open={!!deleteTarget}
         onCancel={() => setDeleteTarget(null)}
-        onOk={() => { if (deleteTarget) { handleDeleteSale(deleteTarget.id); setDeleteTarget(null); } }}
+        onOk={executeDelete}
         okText="Sil"
         cancelText="İptal"
         okButtonProps={{ danger: true, type: 'primary' }}
       >
-        <p><strong>{deleteTarget?.invoiceNo}</strong> nolu satışı silmek istediğinize emin misiniz?</p>
+        <p><strong>{deleteTarget?.musteriAdi}</strong> müşterisine ait satışı silmek istediğinize emin misiniz?</p>
       </Modal>
     </div>
   );
