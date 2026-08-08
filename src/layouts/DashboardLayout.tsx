@@ -25,6 +25,7 @@ import {
   UserOutlined,
 } from '@ant-design/icons';
 import { useNotifications, clearNotifications } from '../shared/notifications';
+import { ProfileModal } from '../components/ProfileModal';
 import './DashboardLayout.css';
 
 const { Sider, Header, Content } = Layout;
@@ -45,6 +46,12 @@ export default function DashboardLayout() {
   const { businessId } = useParams();
   const [collapsed, setCollapsed] = useState(false);
   const notifications = useNotifications();
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profile, setProfile] = useState<{ fullName: string; email: string; photoUrl?: string }>({
+    fullName: 'Zeynel Şahin',
+    email: 'zeynel@sahinmotor.com',
+    photoUrl: undefined,
+  });
 
   const selectedKey = menuItems.find((item) => location.pathname.includes(`/${item.key}`))?.key ?? 'sales';
 
@@ -87,10 +94,15 @@ export default function DashboardLayout() {
         />
 
         <div className="dashboard-layout__sider-bottom">
-          <Avatar size={32} icon={<UserOutlined />} style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
+          <Avatar
+            size={32}
+            src={profile.photoUrl}
+            icon={!profile.photoUrl ? <UserOutlined /> : undefined}
+            style={{ backgroundColor: profile.photoUrl ? 'transparent' : 'rgba(255,255,255,0.2)' }}
+          />
           {!collapsed && (
             <div className="dashboard-layout__user-info">
-              <div className="dashboard-layout__user-name">Zeynel</div>
+              <div className="dashboard-layout__user-name">{profile.fullName}</div>
               <div className="dashboard-layout__user-role">SuperAdmin</div>
             </div>
           )}
@@ -164,11 +176,12 @@ export default function DashboardLayout() {
               </Badge>
             </Popover>
 
-            <Dropdown menu={{ items: userMenuItems, onClick: ({ key }) => key === 'logout' && handleLogout() }}>
+            <Dropdown menu={{ items: userMenuItems, onClick: ({ key }) => { if (key === 'profile') setProfileOpen(true); if (key === 'logout') handleLogout(); } }}>
               <Avatar
                 size={32}
-                icon={<UserOutlined />}
-                style={{ backgroundColor: '#E32727', cursor: 'pointer' }}
+                src={profile.photoUrl}
+                icon={!profile.photoUrl ? <UserOutlined /> : undefined}
+                style={{ backgroundColor: profile.photoUrl ? 'transparent' : '#E32727', cursor: 'pointer' }}
               />
             </Dropdown>
           </div>
@@ -178,6 +191,16 @@ export default function DashboardLayout() {
           <Outlet />
         </Content>
       </Layout>
+
+      <ProfileModal
+        open={profileOpen}
+        onCancel={() => setProfileOpen(false)}
+        onSave={(values) => {
+          setProfile(values);
+          setProfileOpen(false);
+        }}
+        initialData={profile}
+      />
     </Layout>
   );
 }
