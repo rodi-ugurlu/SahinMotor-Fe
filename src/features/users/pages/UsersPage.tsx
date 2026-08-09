@@ -36,7 +36,6 @@ const { Text } = Typography;
 const DEALER_NAMES: Record<string, string> = {
   d1: 'Şahin Motor',
   d2: 'Koman Motor',
-  d3: 'Anadolu Moto',
 };
 
 export default function UsersPage() {

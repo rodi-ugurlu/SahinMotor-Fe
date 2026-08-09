@@ -10,10 +10,6 @@ let dealers: Dealer[] = [
     id: 'd2', name: 'Koman Motor', description: 'Kask, Mont ve Koruma Ekipmanları Satışı',
     logoUrl: undefined, assignedUserIds: ['u4', 'u5'], createdAt: '15.02.2026',
   },
-  {
-    id: 'd3', name: 'Anadolu Moto', description: 'Motosiklet Yedek Parça ve Aksesuar Satışı',
-    logoUrl: undefined, assignedUserIds: ['u6'], createdAt: '01.06.2026',
-  },
 ];
 
 export async function getDealers(): Promise<Dealer[]> {

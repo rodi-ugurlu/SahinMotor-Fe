@@ -21,18 +21,6 @@ export let users: User[] = [
     id: 'u5', fullName: 'Emre Öztürk', email: 'emre@sahinmotor.com',
     password: 'Personel123!', role: 'Personel', dealerId: 'd2', createdAt: '01.03.2026',
   },
-  {
-    id: 'u6', fullName: 'Fatma Çelik', email: 'fatma@sahinmotor.com',
-    password: 'Admin123!', role: 'Admin', dealerId: 'd3', createdAt: '05.06.2026',
-  },
-  {
-    id: 'u7', fullName: 'Kemal Aydın', email: 'kemal@sahinmotor.com',
-    password: 'Personel123!', role: 'Personel', dealerId: 'd3', createdAt: '10.06.2026',
-  },
-  {
-    id: 'u8', fullName: 'Selin Koç', email: 'selin@sahinmotor.com',
-    password: 'Personel123!', role: 'Personel', dealerId: 'd3', createdAt: '15.06.2026',
-  },
 ];
 
 export async function getUsers(): Promise<User[]> {
