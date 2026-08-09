@@ -230,7 +230,7 @@ export default function DashboardLayout() {
       <PasswordModal
         open={passwordOpen}
         onCancel={() => setPasswordOpen(false)}
-        onSave={(password) => {
+        onSave={(_password) => {
           setPasswordOpen(false);
         }}
       />
