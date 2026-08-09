@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation, useParams } from 'react-router-dom';
 import {
   Avatar,
@@ -26,6 +26,8 @@ import {
 } from '@ant-design/icons';
 import { useNotifications, clearNotifications } from '../shared/notifications';
 import { ProfileModal } from '../components/ProfileModal';
+import { getDealers } from '../features/dealers/services/dealersService';
+import type { Dealer } from '../features/dealers/types/dealers';
 import './DashboardLayout.css';
 
 const { Sider, Header, Content } = Layout;
@@ -52,6 +54,14 @@ export default function DashboardLayout() {
     email: 'zeynel@sahinmotor.com',
     photoUrl: undefined,
   });
+  const [dealer, setDealer] = useState<Dealer | null>(null);
+
+  useEffect(() => {
+    getDealers().then((dealers) => {
+      const d = dealers.find((x) => x.id === businessId) ?? null;
+      setDealer(d);
+    });
+  }, [businessId]);
 
   const selectedKey = menuItems.find((item) => location.pathname.includes(`/${item.key}`))?.key ?? 'sales';
 
@@ -81,7 +91,13 @@ export default function DashboardLayout() {
         collapsedWidth={64}
       >
         <div className={`dashboard-layout__logo ${collapsed ? 'dashboard-layout__logo-collapsed' : ''}`}>
-          {collapsed ? 'SM' : 'SahinMotor'}
+          {dealer?.logoUrl ? (
+            <img src={dealer.logoUrl} alt={dealer.name} className="dashboard-layout__logo-img" />
+          ) : collapsed ? (
+            'SM'
+          ) : (
+            dealer?.name || 'SahinMotor'
+          )}
         </div>
 
         <Menu
@@ -127,7 +143,7 @@ export default function DashboardLayout() {
               onClick={() => setCollapsed(!collapsed)}
             />
             <Text className="dashboard-layout__business-name">
-              {businessId === 'sahin-motor' ? 'Şahin Motor' : 'Koman Motor'}
+              {dealer?.name || 'SahinMotor'}
             </Text>
           </div>
 

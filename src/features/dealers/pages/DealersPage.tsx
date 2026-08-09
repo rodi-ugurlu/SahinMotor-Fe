@@ -15,6 +15,7 @@ import {
   Table,
   Tag,
   Typography,
+  Upload,
 } from 'antd';
 import {
   DeleteOutlined,
@@ -27,7 +28,9 @@ import {
   UserAddOutlined,
   UserDeleteOutlined,
 } from '@ant-design/icons';
+import type { UploadFile } from 'antd';
 import { useDealers } from '../hooks/useDealers';
+import { getBase64 } from '../../../shared/image';
 import type { Dealer, DealerUser } from '../types/dealers';
 import './DealersPage.css';
 
@@ -53,30 +56,41 @@ export default function DealersPage() {
   const [detailDealer, setDetailDealer] = useState<Dealer | null>(null);
   const [assignUserId, setAssignUserId] = useState<string | undefined>(undefined);
   const [form] = Form.useForm();
+  const [logoFileList, setLogoFileList] = useState<UploadFile[]>([]);
 
   const openAdd = () => {
     setEditingDealer(null);
     form.resetFields();
+    setLogoFileList([]);
     setModalOpen(true);
   };
 
   const openEdit = (dealer: Dealer) => {
     setEditingDealer(dealer);
-    form.setFieldsValue({ name: dealer.name, description: dealer.description, logoUrl: dealer.logoUrl });
+    form.setFieldsValue({ name: dealer.name, description: dealer.description });
+    if (dealer.logoUrl) {
+      setLogoFileList([{ uid: '-1', name: 'logo.png', status: 'done', url: dealer.logoUrl }]);
+    } else {
+      setLogoFileList([]);
+    }
     setModalOpen(true);
   };
 
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
+      const logoUrl = logoFileList.length > 0 && logoFileList[0].originFileObj
+        ? await getBase64(logoFileList[0].originFileObj as File)
+        : logoFileList[0]?.url || undefined;
       if (editingDealer) {
-        await handleUpdate(editingDealer.id, values);
+        await handleUpdate(editingDealer.id, { ...values, logoUrl });
       } else {
-        await handleAdd(values);
+        await handleAdd({ ...values, logoUrl });
       }
       setModalOpen(false);
       setEditingDealer(null);
       form.resetFields();
+      setLogoFileList([]);
     } catch {
       // validation failed or service error
     }
@@ -249,8 +263,22 @@ export default function DealersPage() {
           <Form.Item name="description" label="Açıklama" rules={[{ required: true, message: 'Açıklama gerekli' }]}>
             <Input.TextArea rows={2} placeholder="Bayi açıklaması" maxLength={200} showCount />
           </Form.Item>
-          <Form.Item name="logoUrl" label="Logo URL" tooltip="Opsiyonel — bayi logosu için resim linki">
-            <Input placeholder="https://ornek.com/logo.png" size="large" />
+          <Form.Item label="Logo">
+            <Upload
+              listType="picture-card"
+              maxCount={1}
+              accept="image/*"
+              fileList={logoFileList}
+              onChange={({ fileList: newList }) => setLogoFileList(newList)}
+              beforeUpload={() => false}
+            >
+              {logoFileList.length === 0 && (
+                <div>
+                  <PlusOutlined />
+                  <div style={{ marginTop: 8 }}>Yükle</div>
+                </div>
+              )}
+            </Upload>
           </Form.Item>
         </Form>
       </Modal>

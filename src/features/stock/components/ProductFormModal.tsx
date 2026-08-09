@@ -3,21 +3,13 @@ import { Form, Input, InputNumber, Modal, Select, Upload } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd';
 import type { Product } from '../types/stock';
+import { getBase64 } from '../../../shared/image';
 
 interface ProductFormModalProps {
   open: boolean;
   editingProduct: Product | null;
   onCancel: () => void;
   onSubmit: (values: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-}
-
-function getBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-  });
 }
 
 export function ProductFormModal({ open, editingProduct, onCancel, onSubmit }: ProductFormModalProps) {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Form, Input, Modal, Upload } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd';
+import { getBase64 } from '../shared/image';
 
 interface ProfileData {
   fullName: string;
@@ -14,15 +15,6 @@ interface ProfileModalProps {
   onCancel: () => void;
   onSave: (values: ProfileData) => void;
   initialData: ProfileData;
-}
-
-function getBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-  });
 }
 
 export function ProfileModal({ open, onCancel, onSave, initialData }: ProfileModalProps) {

@@ -15,6 +15,7 @@ import {
   Table,
   Tag,
   Typography,
+  Upload,
 } from 'antd';
 import {
   DeleteOutlined,
@@ -26,8 +27,10 @@ import {
   SearchOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
+import type { UploadFile } from 'antd';
 import { useUsers } from '../hooks/useUsers';
 import { USER_ROLES, ROLE_LABELS, ROLE_COLORS } from '../types/users';
+import { getBase64 } from '../../../shared/image';
 import type { User, UserRole } from '../types/users';
 import './UsersPage.css';
 
@@ -53,10 +56,12 @@ export default function UsersPage() {
   const [resetTarget, setResetTarget] = useState<User | null>(null);
   const [form] = Form.useForm();
   const [resetForm] = Form.useForm();
+  const [photoFileList, setPhotoFileList] = useState<UploadFile[]>([]);
 
   const openAdd = () => {
     setEditingUser(null);
     form.resetFields();
+    setPhotoFileList([]);
     setModalOpen(true);
   };
 
@@ -65,21 +70,28 @@ export default function UsersPage() {
     form.setFieldsValue({
       fullName: user.fullName,
       email: user.email,
-      photoUrl: user.photoUrl,
       role: user.role,
       dealerId: user.dealerId,
     });
+    if (user.photoUrl) {
+      setPhotoFileList([{ uid: '-1', name: 'photo.png', status: 'done', url: user.photoUrl }]);
+    } else {
+      setPhotoFileList([]);
+    }
     setModalOpen(true);
   };
 
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
+      const photoUrl = photoFileList.length > 0 && photoFileList[0].originFileObj
+        ? await getBase64(photoFileList[0].originFileObj as File)
+        : photoFileList[0]?.url || undefined;
       if (editingUser) {
         await handleUpdate(editingUser.id, {
           fullName: values.fullName,
           email: values.email,
-          photoUrl: values.photoUrl,
+          photoUrl,
           role: values.role,
           dealerId: values.dealerId,
         });
@@ -88,7 +100,7 @@ export default function UsersPage() {
           fullName: values.fullName,
           email: values.email,
           password: values.password,
-          photoUrl: values.photoUrl,
+          photoUrl,
           role: values.role,
           dealerId: values.dealerId,
         });
@@ -96,6 +108,7 @@ export default function UsersPage() {
       setModalOpen(false);
       setEditingUser(null);
       form.resetFields();
+      setPhotoFileList([]);
     } catch {
       // validation failed or service error
     }
@@ -322,8 +335,22 @@ export default function UsersPage() {
             </Form.Item>
           </div>
 
-          <Form.Item name="photoUrl" label="Profil Fotoğrafı URL" tooltip="Opsiyonel">
-            <Input placeholder="https://ornek.com/foto.jpg" />
+          <Form.Item label="Profil Fotoğrafı">
+            <Upload
+              listType="picture-card"
+              maxCount={1}
+              accept="image/*"
+              fileList={photoFileList}
+              onChange={({ fileList: newList }) => setPhotoFileList(newList)}
+              beforeUpload={() => false}
+            >
+              {photoFileList.length === 0 && (
+                <div>
+                  <PlusOutlined />
+                  <div style={{ marginTop: 8 }}>Yükle</div>
+                </div>
+              )}
+            </Upload>
           </Form.Item>
         </Form>
       </Modal>
