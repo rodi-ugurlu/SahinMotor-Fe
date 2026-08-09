@@ -213,7 +213,7 @@ export default function LogsPage() {
           columns={columns}
           dataSource={filteredLogs}
           rowKey="id"
-          pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (t) => `Toplam ${t} log` }}
+          pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (_t, range) => `Bu sayfada ${range[0]}-${range[1]} gösteriliyor` }}
           style={{ background: '#fff', borderRadius: 12 }}
           scroll={{ x: 1000 }}
           locale={{ emptyText: 'Filtrelere uygun log bulunamadı' }}

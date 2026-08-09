@@ -238,7 +238,7 @@ export default function DealersPage() {
           columns={columns}
           dataSource={filteredDealers}
           rowKey="id"
-          pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (t) => `Toplam ${t} bayi` }}
+          pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (_t, range) => `Bu sayfada ${range[0]}-${range[1]} gösteriliyor` }}
           style={{ background: '#fff', borderRadius: 12 }}
           locale={{ emptyText: 'Aramanızla eşleşen bayi bulunamadı' }}
           scroll={{ x: 800 }}

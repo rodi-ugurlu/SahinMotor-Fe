@@ -79,7 +79,7 @@ export function ProductFormModal({ open, editingProduct, onCancel, onSubmit }: P
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
           <Form.Item name="size" label="Beden / Ebat" rules={[{ required: true, message: 'Beden gerekli' }]}>
-            <Select placeholder="Beden seçin" options={['S', 'M', 'L', 'XL', 'Belirtilmemiş'].map((s) => ({ value: s, label: s }))} />
+            <Select placeholder="Beden seçin" options={['XS', 'S', 'M', 'L', 'XL', 'XXL', 'Belirtilmemiş'].map((s) => ({ value: s, label: s }))} />
           </Form.Item>
           <Form.Item name="color" label="Renk" rules={[{ required: true, message: 'Renk gerekli' }]}>
             <Input placeholder="Renk" />

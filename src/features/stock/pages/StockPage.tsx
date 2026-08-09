@@ -38,9 +38,11 @@ export default function StockPage() {
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [hoveredImage, setHoveredImage] = useState<string | null>(null);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
+  const [formKey, setFormKey] = useState(0);
 
   const openAdd = () => {
     setEditingProduct(null);
+    setFormKey((k) => k + 1);
     setModalOpen(true);
   };
 
@@ -166,7 +168,7 @@ export default function StockPage() {
       align: 'center' as const,
       sorter: (a: Product, b: Product) => a.stock - b.stock,
       render: (v: number, record: Product) => {
-        const color = v <= record.minStock ? '#E32727' : v <= record.minStock * 2 ? '#F59E0B' : '#22C55E';
+        const color = v <= record.minStock ? '#E32727' : '#22C55E';
         return <Text strong style={{ color, fontSize: 15 }}>{v}</Text>;
       },
     },
@@ -220,7 +222,7 @@ export default function StockPage() {
 
       <div className="stock-page__filter-row">
         <Tag
-          color={filter === 'all' ? 'red' : 'default'}
+          color={filter === 'all' ? 'blue' : 'default'}
           style={{ cursor: 'pointer', padding: '4px 12px', fontSize: 13 }}
           onClick={() => setFilter('all')}
         >
@@ -263,7 +265,7 @@ export default function StockPage() {
           columns={columns}
           dataSource={filteredProducts}
           rowKey="id"
-          pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (total) => `Toplam ${total} ürün` }}
+          pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (_total, range) => `Bu sayfada ${range[0]}-${range[1]} gösteriliyor` }}
           style={{ background: '#fff', borderRadius: 12 }}
           locale={{ emptyText: 'Aramanızla eşleşen ürün bulunamadı' }}
           scroll={{ x: 1100 }}
@@ -280,6 +282,7 @@ export default function StockPage() {
       )}
 
       <ProductFormModal
+        key={formKey}
         open={modalOpen}
         editingProduct={editingProduct}
         onCancel={() => { setModalOpen(false); setEditingProduct(null); }}

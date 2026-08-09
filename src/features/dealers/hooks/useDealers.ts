@@ -5,6 +5,7 @@ import {
   addDealer, assignUserToDealer, deleteDealer,
   getAvailableUsers, getDealers, removeUserFromDealer, updateDealer,
 } from '../services/dealersService';
+import { emit } from '../../../shared/events';
 
 type State = 'loading' | 'loaded' | 'empty' | 'error';
 
@@ -65,6 +66,7 @@ export function useDealers(): UseDealersReturn {
     try {
       const updated = await updateDealer(id, data);
       setDealers((prev) => prev.map((d) => (d.id === id ? updated : d)));
+      emit('dealerUpdated');
       message.success('Bayi güncellendi');
     } catch {
       message.error('Bayi güncellenirken hata oluştu');

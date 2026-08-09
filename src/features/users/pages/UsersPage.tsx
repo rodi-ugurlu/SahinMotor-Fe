@@ -1,11 +1,8 @@
 import { useState } from 'react';
 import {
   Alert,
-  Avatar,
   Badge,
   Button,
-  Descriptions,
-  Drawer,
   Form,
   Input,
   Modal,
@@ -20,7 +17,6 @@ import {
 import {
   DeleteOutlined,
   EditOutlined,
-  EyeOutlined,
   KeyOutlined,
   PlusOutlined,
   ReloadOutlined,
@@ -52,7 +48,6 @@ export default function UsersPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
-  const [detailUser, setDetailUser] = useState<User | null>(null);
   const [resetTarget, setResetTarget] = useState<User | null>(null);
   const [form] = Form.useForm();
   const [resetForm] = Form.useForm();
@@ -119,7 +114,6 @@ export default function UsersPage() {
     try {
       await handleDelete(deleteTarget.id);
       setDeleteTarget(null);
-      if (detailUser?.id === deleteTarget.id) setDetailUser(null);
     } catch {
       // handled in hook
     }
@@ -178,12 +172,11 @@ export default function UsersPage() {
       width: 110,
     },
     {
-      title: '',
+      title: 'İşlemler',
       key: 'actions',
-      width: 130,
+      width: 120,
       render: (_: unknown, record: User) => (
         <Space size={4}>
-          <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => setDetailUser(record)} />
           <Button type="text" size="small" icon={<EditOutlined />} onClick={() => openEdit(record)} />
           <Button type="text" size="small" icon={<KeyOutlined />} onClick={() => { setResetTarget(record); resetForm.resetFields(); }} title="Şifre Sıfırla" />
           <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => setDeleteTarget(record)} />
@@ -225,7 +218,7 @@ export default function UsersPage() {
 
       <div className="users-page__filter-row">
         <Tag
-          color={roleFilter === 'all' ? 'red' : 'default'}
+          color={roleFilter === 'all' ? 'blue' : 'default'}
           style={{ cursor: 'pointer', padding: '4px 12px', fontSize: 13 }}
           onClick={() => setRoleFilter('all')}
         >
@@ -234,7 +227,7 @@ export default function UsersPage() {
         {USER_ROLES.map((role) => (
           <Tag
             key={role}
-            color={roleFilter === role ? 'red' : 'default'}
+            color={roleFilter === role ? ROLE_COLORS[role] : 'default'}
             style={{ cursor: 'pointer', padding: '4px 12px', fontSize: 13 }}
             onClick={() => setRoleFilter(roleFilter === role ? 'all' : role)}
           >
@@ -264,7 +257,7 @@ export default function UsersPage() {
           columns={columns}
           dataSource={filteredUsers}
           rowKey="id"
-          pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (t) => `Toplam ${t} kullanıcı` }}
+          pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (_t, range) => `Bu sayfada ${range[0]}-${range[1]} gösteriliyor` }}
           style={{ background: '#fff', borderRadius: 12 }}
           locale={{ emptyText: 'Aramanızla eşleşen kullanıcı bulunamadı' }}
           scroll={{ x: 800 }}
@@ -354,45 +347,6 @@ export default function UsersPage() {
           </Form.Item>
         </Form>
       </Modal>
-
-      <Drawer
-        title={detailUser ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Avatar
-              src={detailUser.photoUrl}
-              size={36}
-              style={{ backgroundColor: detailUser.photoUrl ? 'transparent' : ROLE_COLORS[detailUser.role], flexShrink: 0 }}
-            >
-              {!detailUser.photoUrl && detailUser.fullName.charAt(0).toUpperCase()}
-            </Avatar>
-            <span>{detailUser.fullName}</span>
-          </div>
-        ) : ''}
-        open={!!detailUser}
-        onClose={() => setDetailUser(null)}
-        width={500}
-      >
-        {detailUser && (
-          <Descriptions bordered column={1} size="small">
-            <Descriptions.Item label="Ad Soyad">{detailUser.fullName}</Descriptions.Item>
-            <Descriptions.Item label="E-posta">{detailUser.email}</Descriptions.Item>
-            <Descriptions.Item label="Rol">
-              <Tag color={ROLE_COLORS[detailUser.role]}>{ROLE_LABELS[detailUser.role]}</Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="Bayi">
-              {DEALER_NAMES[detailUser.dealerId] || detailUser.dealerId}
-            </Descriptions.Item>
-            <Descriptions.Item label="Profil Fotoğrafı">
-              {detailUser.photoUrl ? (
-                <img src={detailUser.photoUrl} alt={detailUser.fullName} style={{ width: 60, height: 60, borderRadius: 8, objectFit: 'cover' }} />
-              ) : (
-                <Text type="secondary">Fotoğraf eklenmemiş</Text>
-              )}
-            </Descriptions.Item>
-            <Descriptions.Item label="Kayıt Tarihi">{detailUser.createdAt}</Descriptions.Item>
-          </Descriptions>
-        )}
-      </Drawer>
 
       <Modal
         title="Şifre Sıfırla"

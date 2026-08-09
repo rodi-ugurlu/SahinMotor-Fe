@@ -15,17 +15,21 @@ import {
   HistoryOutlined,
   IdcardOutlined,
   InboxOutlined,
+  KeyOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   BellOutlined,
   ShopOutlined,
   ShoppingCartOutlined,
+  SwapOutlined,
   TeamOutlined,
   UserOutlined,
 } from '@ant-design/icons';
 import { useNotifications, clearNotifications } from '../shared/notifications';
+import { on } from '../shared/events';
 import { ProfileModal } from '../components/ProfileModal';
+import { PasswordModal } from '../components/PasswordModal';
 import { getDealers } from '../features/dealers/services/dealersService';
 import type { Dealer } from '../features/dealers/types/dealers';
 import './DashboardLayout.css';
@@ -49,6 +53,7 @@ export default function DashboardLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const notifications = useNotifications();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const [profile, setProfile] = useState<{ fullName: string; email: string; photoUrl?: string }>({
     fullName: 'Zeynel Şahin',
     email: 'zeynel@sahinmotor.com',
@@ -57,10 +62,14 @@ export default function DashboardLayout() {
   const [dealer, setDealer] = useState<Dealer | null>(null);
 
   useEffect(() => {
-    getDealers().then((dealers) => {
-      const d = dealers.find((x) => x.id === businessId) ?? null;
-      setDealer(d);
-    });
+    const fetchDealer = () => {
+      getDealers().then((dealers) => {
+        const d = dealers.find((x) => x.id === businessId) ?? null;
+        setDealer(d);
+      });
+    };
+    fetchDealer();
+    return on('dealerUpdated', fetchDealer);
   }, [businessId]);
 
   const selectedKey = menuItems.find((item) => location.pathname.includes(`/${item.key}`))?.key ?? 'sales';
@@ -75,6 +84,7 @@ export default function DashboardLayout() {
 
   const userMenuItems = [
     { key: 'profile', icon: <UserOutlined />, label: 'Profil' },
+    { key: 'password', icon: <KeyOutlined />, label: 'Şifremi Güncelle' },
     { type: 'divider' as const },
     { key: 'logout', icon: <LogoutOutlined />, label: 'Çıkış Yap', danger: true },
   ];
@@ -110,26 +120,25 @@ export default function DashboardLayout() {
         />
 
         <div className="dashboard-layout__sider-bottom">
-          <Avatar
-            size={32}
-            src={profile.photoUrl}
-            icon={!profile.photoUrl ? <UserOutlined /> : undefined}
-            style={{ backgroundColor: profile.photoUrl ? 'transparent' : 'rgba(255,255,255,0.2)' }}
-          />
-          {!collapsed && (
-            <div className="dashboard-layout__user-info">
-              <div className="dashboard-layout__user-name">{profile.fullName}</div>
-              <div className="dashboard-layout__user-role">SuperAdmin</div>
-            </div>
-          )}
-          {!collapsed && (
+          {collapsed ? (
             <Button
               type="text"
               size="small"
-              icon={<LogoutOutlined />}
-              onClick={handleLogout}
+              icon={<SwapOutlined />}
+              onClick={() => navigate('/select-business')}
               style={{ color: '#94A3B8' }}
             />
+          ) : (
+            <>
+              <span className="dashboard-layout__switch-label">İşletme Değiştir</span>
+              <Button
+                type="text"
+                size="small"
+                icon={<SwapOutlined />}
+                onClick={() => navigate('/select-business')}
+                style={{ color: '#94A3B8' }}
+              />
+            </>
           )}
         </div>
       </Sider>
@@ -192,7 +201,7 @@ export default function DashboardLayout() {
               </Badge>
             </Popover>
 
-            <Dropdown menu={{ items: userMenuItems, onClick: ({ key }) => { if (key === 'profile') setProfileOpen(true); if (key === 'logout') handleLogout(); } }}>
+            <Dropdown menu={{ items: userMenuItems, onClick: ({ key }) => { if (key === 'profile') setProfileOpen(true); if (key === 'password') setPasswordOpen(true); if (key === 'logout') handleLogout(); } }}>
               <Avatar
                 size={32}
                 src={profile.photoUrl}
@@ -216,6 +225,14 @@ export default function DashboardLayout() {
           setProfileOpen(false);
         }}
         initialData={profile}
+      />
+
+      <PasswordModal
+        open={passwordOpen}
+        onCancel={() => setPasswordOpen(false)}
+        onSave={(password) => {
+          setPasswordOpen(false);
+        }}
       />
     </Layout>
   );

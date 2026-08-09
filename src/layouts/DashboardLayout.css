@@ -90,27 +90,16 @@
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   flex-shrink: 0;
 }
 
-.dashboard-layout__user-info {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.dashboard-layout__user-name {
-  color: #fff;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.2;
-}
-
-.dashboard-layout__user-role {
+.dashboard-layout__switch-label {
   color: #94A3B8;
-  font-size: 11px;
-  line-height: 1.2;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .dashboard-layout__header {

@@ -72,6 +72,7 @@ export default function SalesPage() {
   } = useSales();
 
   const [productSearch, setProductSearch] = useState('');
+  const [selectKey, setSelectKey] = useState(0);
   const [flowStep, setFlowStep] = useState<FlowStep>('cart');
   const [customerForm] = Form.useForm();
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | undefined>(undefined);
@@ -104,6 +105,7 @@ export default function SalesPage() {
     if (!productId) return;
     addToCart(productId);
     setProductSearch('');
+    setSelectKey((k) => k + 1);
   };
 
   const showBarcodeResult = useCallback((msg: string, ok: boolean) => {
@@ -297,10 +299,11 @@ export default function SalesPage() {
       },
     },
     {
-      title: '', key: 'actions', width: 80,
+      title: 'İşlemler', key: 'actions', width: 120,
       render: (_: unknown, record: Sale) => (
         <Space size={4}>
           <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => setDetailSale(record)} />
+          <Button type="text" size="small" icon={<PrinterOutlined />} onClick={() => setDetailSale(record)} />
           <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => setDeleteTarget(record)} />
         </Space>
       ),
@@ -403,7 +406,7 @@ export default function SalesPage() {
               columns={saleColumns}
               dataSource={filteredSales}
               rowKey="id"
-              pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (t) => `Toplam ${t} satış` }}
+              pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (_t, range) => `Bu sayfada ${range[0]}-${range[1]} gösteriliyor` }}
               style={{ background: '#fff', borderRadius: 14 }}
               scroll={{ x: 800 }}
             />
@@ -415,6 +418,13 @@ export default function SalesPage() {
           open={!!detailSale}
           onClose={() => setDetailSale(null)}
           width={560}
+          extra={
+            detailSale && (
+              <Button icon={<PrinterOutlined />} onClick={() => window.print()} style={{ borderRadius: 10 }}>
+                Yazdır
+              </Button>
+            )
+          }
         >
           {detailSale && (
             <>
@@ -717,8 +727,10 @@ export default function SalesPage() {
 
           <div className="sales-page__spotlight-search">
             <Select
+              key={selectKey}
               showSearch
               value={undefined}
+              searchValue={productSearch}
               placeholder="Ürün adı veya kodu ile arayın..."
               filterOption={false}
               onSearch={setProductSearch}
@@ -772,8 +784,10 @@ export default function SalesPage() {
 
             <div className="sales-page__workspace-search">
               <Select
+                key={selectKey}
                 showSearch
                 value={undefined}
+                searchValue={productSearch}
                 placeholder="Ürün eklemeye devam et..."
                 filterOption={false}
                 onSearch={setProductSearch}

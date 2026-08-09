@@ -200,7 +200,7 @@ export default function CustomersPage() {
           columns={columns}
           dataSource={filteredCustomers}
           rowKey="id"
-          pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (t) => `Toplam ${t} müşteri` }}
+          pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (_t, range) => `Bu sayfada ${range[0]}-${range[1]} gösteriliyor` }}
           style={{ background: '#fff', borderRadius: 12 }}
           locale={{ emptyText: 'Aramanızla eşleşen müşteri bulunamadı' }}
           scroll={{ x: 1100 }}

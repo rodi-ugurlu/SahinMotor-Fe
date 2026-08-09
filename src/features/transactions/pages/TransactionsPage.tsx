@@ -4,8 +4,6 @@ import {
   Avatar,
   Badge,
   Button,
-  Descriptions,
-  Drawer,
   Input,
   Progress,
   Select,
@@ -58,7 +56,6 @@ export default function TransactionsPage() {
     setPeriod, setLogSearch, setLogTypeFilter, retry,
   } = useTransactions();
 
-  const [detailLog, setDetailLog] = useState<LogEntry | null>(null);
   const [activeView, setActiveView] = useState<'reports' | 'activities'>('reports');
 
   if (state === 'error') {
@@ -107,26 +104,12 @@ export default function TransactionsPage() {
       render: (type: LogType) => <Tag color={TYPE_MAP[type].color}>{TYPE_MAP[type].label}</Tag>,
     },
     {
-      title: 'Modül', dataIndex: 'module', key: 'module', width: 110,
-      render: (mod: string) => <Tag>{mod}</Tag>,
-    },
-    {
       title: 'Açıklama', key: 'description',
       render: (_: unknown, record: LogEntry) => (
         <div className="transactions-page__log-desc">
           <Text className="transactions-page__log-desc-main">{record.description}</Text>
           {record.detail && <Text className="transactions-page__log-desc-detail">{record.detail}</Text>}
         </div>
-      ),
-    },
-    {
-      title: 'IP', dataIndex: 'ip', key: 'ip', width: 120, responsive: ['lg' as const],
-      render: (ip: string) => <Text className="transactions-page__log-ip">{ip}</Text>,
-    },
-    {
-      title: '', key: 'actions', width: 50,
-      render: (_: unknown, record: LogEntry) => (
-        <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => setDetailLog(record)} />
       ),
     },
   ];
@@ -185,8 +168,6 @@ export default function TransactionsPage() {
                 { value: 'all', label: 'Tüm İşlemler' },
                 { value: 'sales', label: 'Satış' },
                 { value: 'stock', label: 'Stok' },
-                { value: 'login', label: 'Giriş' },
-                { value: 'logout', label: 'Çıkış' },
               ]}
             />
             <Input
@@ -204,19 +185,29 @@ export default function TransactionsPage() {
             columns={logColumns}
             dataSource={filteredLogs}
             rowKey="id"
-            pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (t) => `Toplam ${t} log` }}
+            pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (_t, range) => `Bu sayfada ${range[0]}-${range[1]} gösteriliyor` }}
             locale={{ emptyText: 'Filtrelere uygun log bulunamadı' }}
             scroll={{ x: 900 }}
           />
         </div>
       ) : (
         <>
+          <div className="transactions-page__period-selector">
+            {PERIODS.map((p) => (
+              <button
+                key={p.key}
+                className={`transactions-page__period-btn ${period === p.key ? 'transactions-page__period-btn--active' : ''}`}
+                onClick={() => setPeriod(p.key)}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
           <div className="transactions-page__kpi-grid">
             <div className="transactions-page__kpi-card transactions-page__kpi-card--revenue">
               <div className="transactions-page__kpi-header">
-                <span className="transactions-page__kpi-label">
-                  {period === 'daily' ? 'Günlük Ciro' : period === 'weekly' ? 'Haftalık Ciro' : 'Aylık Ciro'}
-                </span>
+                <span className="transactions-page__kpi-label">Ciro</span>
                 <div className="transactions-page__kpi-icon transactions-page__kpi-icon--red">
                   <DollarOutlined />
                 </div>
@@ -263,19 +254,6 @@ export default function TransactionsPage() {
             </div>
           </div>
 
-          {/* Period Selector */}
-          <div className="transactions-page__period-selector">
-            {PERIODS.map((p) => (
-              <button
-                key={p.key}
-                className={`transactions-page__period-btn ${period === p.key ? 'transactions-page__period-btn--active' : ''}`}
-                onClick={() => setPeriod(p.key)}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-
           {/* Content Grid */}
           <div className="transactions-page__content-grid">
             {/* Sales Table */}
@@ -311,7 +289,6 @@ export default function TransactionsPage() {
                     { title: 'Hafta', dataIndex: 'week', key: 'week', width: 100 },
                     { title: 'Satış', dataIndex: 'totalSales', key: 'totalSales', width: 80, align: 'center' as const },
                     { title: 'Ciro', dataIndex: 'totalRevenue', key: 'totalRevenue', width: 130, render: (v: number) => <Text strong>₺{v.toLocaleString('tr-TR')}</Text> },
-                    { title: 'Ort. Ciro', dataIndex: 'avgRevenue', key: 'avgRevenue', width: 120, render: (v: number) => <Text>₺{v.toLocaleString('tr-TR')}</Text> },
                   ]}
                   dataSource={weekly}
                   rowKey="week"
@@ -326,7 +303,6 @@ export default function TransactionsPage() {
                     { title: 'Ay', dataIndex: 'month', key: 'month', width: 90 },
                     { title: 'Satış', dataIndex: 'totalSales', key: 'totalSales', width: 70, align: 'center' as const },
                     { title: 'Ciro', dataIndex: 'totalRevenue', key: 'totalRevenue', width: 130, render: (v: number) => <Text strong>₺{v.toLocaleString('tr-TR')}</Text> },
-                    { title: 'Ort. Ciro', dataIndex: 'avgRevenue', key: 'avgRevenue', width: 110, render: (v: number) => <Text>₺{v.toLocaleString('tr-TR')}</Text> },
                     {
                       title: 'Büyüme', dataIndex: 'growth', key: 'growth', width: 90,
                       render: (v: number) => v === 0 ? <Text type="secondary">—</Text> : (
@@ -358,12 +334,15 @@ export default function TransactionsPage() {
               {period === 'daily' && (
                 <div className="transactions-page__chart">
                   {daily.map((d) => {
-                    const height = Math.max((d.total / maxDaily) * 160, 8);
+                    const height = Math.max((d.total / maxDaily) * 140, 8);
+                    const [day, month] = d.date.split('.');
+                    const months = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+                    const label = `${parseInt(day)} ${months[parseInt(month) - 1]}`;
                     return (
                       <div className="transactions-page__chart-bar-wrap" key={d.invoiceNo}>
                         <div className="transactions-page__chart-value">₺{d.total}</div>
                         <div className="transactions-page__chart-bar" style={{ height }} />
-                        <div className="transactions-page__chart-label">{d.date.slice(0, 5)}</div>
+                        <div className="transactions-page__chart-label">{label}</div>
                       </div>
                     );
                   })}
@@ -377,18 +356,16 @@ export default function TransactionsPage() {
                       <div className="transactions-page__comparison-title" style={{ color: '#22C55E' }}>Bu Hafta</div>
                       <div className="transactions-page__comparison-row"><span>Ciro</span><span className="transactions-page__comparison-value">₺{currentWeek?.totalRevenue.toLocaleString('tr-TR')}</span></div>
                       <div className="transactions-page__comparison-row"><span>Satış</span><span className="transactions-page__comparison-value">{currentWeek?.totalSales}</span></div>
-                      <div className="transactions-page__comparison-row"><span>Ort. Sepet</span><span className="transactions-page__comparison-value">₺{currentWeek?.avgRevenue.toLocaleString('tr-TR')}</span></div>
                     </div>
                     <div className="transactions-page__comparison-card transactions-page__comparison-card--previous">
                       <div className="transactions-page__comparison-title" style={{ color: '#64748B' }}>Geçen Hafta</div>
                       <div className="transactions-page__comparison-row"><span>Ciro</span><span className="transactions-page__comparison-value">₺{previousWeek?.totalRevenue.toLocaleString('tr-TR')}</span></div>
                       <div className="transactions-page__comparison-row"><span>Satış</span><span className="transactions-page__comparison-value">{previousWeek?.totalSales}</span></div>
-                      <div className="transactions-page__comparison-row"><span>Ort. Sepet</span><span className="transactions-page__comparison-value">₺{previousWeek?.avgRevenue.toLocaleString('tr-TR')}</span></div>
                     </div>
                   </div>
                   <div className="transactions-page__chart">
                     {[...weekly].reverse().map((w) => {
-                      const height = Math.max((w.totalRevenue / maxWeekly) * 160, 8);
+                      const height = Math.max((w.totalRevenue / maxWeekly) * 140, 8);
                       return (
                         <div className="transactions-page__chart-bar-wrap" key={w.week}>
                           <div className="transactions-page__chart-value">₺{(w.totalRevenue / 1000).toFixed(1)}k</div>
@@ -425,7 +402,7 @@ export default function TransactionsPage() {
                   <div className="transactions-page__section-title-icon" style={{ background: '#FFF5F5', color: '#E32727' }}>
                     <BarChartOutlined />
                   </div>
-                  Ürün Bazlı Satış Raporu
+                  En Çok Satan Ürünler
                 </div>
               </div>
               <Table<ProductReport>
@@ -439,14 +416,11 @@ export default function TransactionsPage() {
                   {
                     title: 'Ciro %', dataIndex: 'revenuePercent', key: 'revenuePercent', width: 150,
                     render: (v: number) => (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Progress percent={v} size="small" strokeColor="#E32727" style={{ flex: 1, margin: 0 }} />
-                        <Text style={{ fontSize: 12, minWidth: 36 }}>%{v}</Text>
-                      </div>
+                      <Progress percent={v} size="small" strokeColor="#E32727" style={{ margin: 0 }} />
                     ),
                   },
                 ]}
-                dataSource={products}
+                dataSource={products.slice(0, 5)}
                 rowKey="rank"
                 pagination={false}
                 size="small"
@@ -455,55 +429,6 @@ export default function TransactionsPage() {
           </div>
         </>
       )}
-
-      <Drawer
-        title={detailLog ? `İşlem Detayı — ${detailLog.id}` : ''}
-        open={!!detailLog}
-        onClose={() => setDetailLog(null)}
-        width={500}
-      >
-        {detailLog && (
-          <>
-            <Descriptions bordered column={1} size="small" style={{ marginBottom: 16 }}>
-              <Descriptions.Item label="Kullanıcı">
-                <div className="transactions-page__log-user">
-                  <Avatar size={28} style={{ backgroundColor: detailLog.user.color }}>
-                    {detailLog.user.name.charAt(0)}
-                  </Avatar>
-                  <Text strong>{detailLog.user.name}</Text>
-                  <Tag color={ROLE_COLORS[detailLog.user.role] || 'default'}>{detailLog.user.role}</Tag>
-                </div>
-              </Descriptions.Item>
-              <Descriptions.Item label="İşlem Tipi">
-                <Tag color={TYPE_MAP[detailLog.type].color}>{TYPE_MAP[detailLog.type].label}</Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="Modül"><Tag>{detailLog.module}</Tag></Descriptions.Item>
-              <Descriptions.Item label="Tarih">{detailLog.date}</Descriptions.Item>
-              <Descriptions.Item label="IP Adresi"><Text code>{detailLog.ip}</Text></Descriptions.Item>
-              <Descriptions.Item label="Açıklama">{detailLog.description}</Descriptions.Item>
-              {detailLog.detail && <Descriptions.Item label="Detay">{detailLog.detail}</Descriptions.Item>}
-            </Descriptions>
-
-            {detailLog.changes && detailLog.changes.length > 0 && (
-              <>
-                <Text strong style={{ display: 'block', marginBottom: 8 }}>Değişiklik Detayı</Text>
-                <Table
-                  columns={[
-                    { title: 'Alan', dataIndex: 'field', key: 'field' },
-                    { title: 'Önceki', dataIndex: 'oldValue', key: 'oldValue', render: (v: string) => <Text delete style={{ color: '#E32727' }}>{v}</Text> },
-                    { title: 'Yeni', dataIndex: 'newValue', key: 'newValue', render: (v: string) => <Text strong style={{ color: '#22C55E' }}>{v}</Text> },
-                  ]}
-                  dataSource={detailLog.changes}
-                  rowKey="field"
-                  pagination={false}
-                  size="small"
-                  className="transactions-page__changes-table"
-                />
-              </>
-            )}
-          </>
-        )}
-      </Drawer>
     </div>
   );
 }
