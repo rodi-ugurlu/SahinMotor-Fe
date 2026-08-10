@@ -28,20 +28,22 @@ export function LoginForm({ form, onFinish, onForgotPassword, isLoading }: Login
   const handleForgotPasswordClick = async () => {
     const email = form.getFieldValue('email')?.trim();
 
-    if (!email || !validateEmail(email)) {
-      const warningMsg = 'Geçici şifrenizi gönderebilmemiz için mail adresinizi giriniz.';
+    if (!email) {
       setInfoState({
         type: 'warning',
-        message: warningMsg,
+        message: 'Geçici şifrenizi gönderebilmemiz için mail adresinizi giriniz.',
       });
-      form.setFields([
-        {
-          name: 'email',
-          errors: [],
-        },
-      ]);
       return;
     }
+
+    if (!validateEmail(email)) {
+      setInfoState({
+        type: 'warning',
+        message: 'Lütfen geçerli bir e-posta adresi giriniz.',
+      });
+      return;
+    }
+
 
 
     setIsForgotLoading(true);
