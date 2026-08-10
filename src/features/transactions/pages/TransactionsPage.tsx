@@ -2,9 +2,12 @@ import { useState } from 'react';
 import {
   Alert,
   Avatar,
-  Badge,
   Button,
+
+  Divider,
   Input,
+  Modal,
+  Popover,
   Progress,
   Select,
   Skeleton,
@@ -16,12 +19,24 @@ import {
   ArrowDownOutlined,
   ArrowUpOutlined,
   BarChartOutlined,
-  DollarOutlined,
+  ClockCircleOutlined,
+
+  CreditCardOutlined,
+  DownloadOutlined,
   EyeOutlined,
+  FilePdfOutlined,
+  FileTextOutlined,
+  FilterOutlined,
   InboxOutlined,
+  InfoCircleOutlined,
+  MoneyCollectOutlined,
+  PrinterOutlined,
   ReloadOutlined,
+  RiseOutlined,
   SearchOutlined,
+  ShopOutlined,
   ShoppingCartOutlined,
+  SwapRightOutlined,
   WalletOutlined,
 } from '@ant-design/icons';
 import { useTransactions } from '../hooks/useTransactions';
@@ -31,80 +46,168 @@ import './TransactionsPage.css';
 
 const { Text } = Typography;
 
-const TYPE_MAP: Record<LogType, { color: string; label: string }> = {
-  sales: { color: 'blue', label: 'Satış' },
-  stock: { color: 'orange', label: 'Stok' },
-  login: { color: 'green', label: 'Giriş' },
-  logout: { color: 'red', label: 'Çıkış' },
-};
-
-const ROLE_COLORS: Record<string, string> = {
-  SuperAdmin: '#E32727', Admin: '#3B82F6', Personel: '#22C55E', Guest: '#94A3B8',
-};
-
-const PERIODS: { key: ReportPeriod; label: string }[] = [
-  { key: 'daily', label: 'Günlük' },
-  { key: 'weekly', label: 'Haftalık' },
-  { key: 'monthly', label: 'Aylık' },
+const TURKISH_MONTHS = [
+  'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+  'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
 ];
+
+function formatTurkishDate(dateStr: string): string {
+  if (!dateStr || !dateStr.includes('.')) return dateStr;
+  const parts = dateStr.split('.');
+  if (parts.length < 2) return dateStr;
+  const day = parseInt(parts[0], 10);
+  const monthIdx = parseInt(parts[1], 10) - 1;
+  if (isNaN(day) || monthIdx < 0 || monthIdx >= 12) return dateStr;
+  return `${day} ${TURKISH_MONTHS[monthIdx]}`;
+}
+
+const TYPE_MAP: Record<LogType, { color: string; label: string; bg: string }> = {
+  sales: { color: '#3B82F6', label: 'Satış', bg: '#EFF6FF' },
+  stock: { color: '#F59E0B', label: 'Stok', bg: '#FFFBEB' },
+  login: { color: '#22C55E', label: 'Giriş', bg: '#F0FDF4' },
+  logout: { color: '#EF4444', label: 'Çıkış', bg: '#FEF2F2' },
+};
+
+const ROLE_COLORS: Record<string, { bg: string; color: string; border: string }> = {
+  SuperAdmin: { bg: '#FEF2F2', color: '#E32727', border: '#FCA5A5' },
+  Admin: { bg: '#EFF6FF', color: '#3B82F6', border: '#BFDBFE' },
+  Personel: { bg: '#F0FDF4', color: '#22C55E', border: '#BBF7D0' },
+  Guest: { bg: '#F8FAFC', color: '#64748B', border: '#E2E8F0' },
+};
+
+const PAYMENT_METHOD_MAP: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
+  kart: { label: 'Kredi Kartı', icon: <CreditCardOutlined />, color: '#3B82F6' },
+  nakit: { label: 'Nakit', icon: <MoneyCollectOutlined />, color: '#22C55E' },
+  havale: { label: 'Banka Havalesi', icon: <WalletOutlined />, color: '#8B5CF6' },
+};
+
+const STATUS_MAP: Record<string, { label: string; color: string }> = {
+  bitti: { label: 'Tamamlandı', color: 'success' },
+  beklemede: { label: 'Bekliyor', color: 'warning' },
+  taslak: { label: 'Taslak', color: 'default' },
+  iptal: { label: 'İptal Edildi', color: 'error' },
+};
 
 export default function TransactionsPage() {
   const {
-    state, period, summary, daily, weekly, monthly, products,
-    totalStockCount, totalStockValue,
-    filteredLogs, logSearch, logTypeFilter,
-    setPeriod, setLogSearch, setLogTypeFilter, retry,
+    state,
+    period,
+    summary,
+
+    daily,
+    weekly,
+    monthly,
+    products,
+    totalStockCount,
+    totalStockValue,
+    selectedSale,
+
+    isInvoiceModalOpen,
+    filteredLogs,
+    logSearch,
+    logTypeFilter,
+    logRoleFilter,
+    setPeriod,
+    setLogSearch,
+    setLogTypeFilter,
+    setLogRoleFilter,
+    openInvoiceModal,
+    closeInvoiceModal,
+    exportToCSV,
+    retry,
   } = useTransactions();
 
   const [activeView, setActiveView] = useState<'reports' | 'activities'>('reports');
+  const [hoveredChartIndex, setHoveredChartIndex] = useState<number | null>(null);
 
   if (state === 'error') {
     return (
       <Alert
-        message="Veriler yüklenirken hata oluştu"
-        type="error" showIcon
+        message="İşlem ve Rapor Verileri Yüklenemedi"
+        description="Sunucudan veriler çekilirken bir bağlantı hatası oluştu. Lütfen tekrar deneyiniz."
+        type="error"
+        showIcon
         action={<Button size="small" danger icon={<ReloadOutlined />} onClick={retry}>Yeniden Dene</Button>}
-        style={{ borderRadius: 10 }}
+        style={{ borderRadius: 12, padding: 16 }}
       />
     );
   }
 
-  const isUp = summary ? summary.revenueChange >= 0 : false;
+  const isUp = summary ? summary.revenueChange >= 0 : true;
+
+  // Chart data calculations
   const maxDaily = Math.max(...daily.map((d) => d.total), 1);
   const maxWeekly = Math.max(...weekly.map((w) => w.totalRevenue), 1);
   const maxMonthly = Math.max(...monthly.map((m) => m.totalRevenue), 1);
-  const currentWeek = weekly[0];
-  const previousWeek = weekly[1];
 
+  // Peak day logic
+  const peakDailyDay = daily.reduce((prev, current) => (prev.total > current.total ? prev : current), daily[0] || { total: 0, date: '-' });
+
+  // Log Columns with Expandable Row Diff Support
   const logColumns = [
     {
-      title: 'Tarih', dataIndex: 'date', key: 'date', width: 150,
+      title: 'Zaman',
+      dataIndex: 'date',
+      key: 'date',
+      width: 160,
       sorter: (a: LogEntry, b: LogEntry) => a.date.localeCompare(b.date),
       defaultSortOrder: 'descend' as const,
-      render: (date: string) => <Text className="transactions-page__log-date">{date}</Text>,
-    },
-    {
-      title: 'Kullanıcı', key: 'user', width: 160,
-      render: (_: unknown, record: LogEntry) => (
-        <div className="transactions-page__log-user">
-          <Avatar size={28} style={{ backgroundColor: record.user.color, flexShrink: 0 }}>
-            {record.user.name.charAt(0)}
-          </Avatar>
-          <div className="transactions-page__log-user-info">
-            <Text className="transactions-page__log-user-name">{record.user.name}</Text>
-            <Tag color={ROLE_COLORS[record.user.role] || 'default'} style={{ fontSize: 10, lineHeight: '16px', padding: '0 4px' }}>
-              {record.user.role}
-            </Tag>
-          </div>
+      render: (date: string) => (
+        <div className="transactions-page__log-time-cell">
+          <ClockCircleOutlined style={{ color: '#94A3B8', fontSize: 12 }} />
+          <Text className="transactions-page__log-date">{date}</Text>
         </div>
       ),
     },
     {
-      title: 'İşlem', dataIndex: 'type', key: 'type', width: 80,
-      render: (type: LogType) => <Tag color={TYPE_MAP[type].color}>{TYPE_MAP[type].label}</Tag>,
+      title: 'Kullanıcı',
+      key: 'user',
+      width: 200,
+      render: (_: unknown, record: LogEntry) => {
+        const roleStyle = ROLE_COLORS[record.user.role] || ROLE_COLORS.Guest;
+        return (
+          <div className="transactions-page__log-user">
+            <Avatar size={32} style={{ backgroundColor: record.user.color, fontWeight: 600, flexShrink: 0 }}>
+              {record.user.name.charAt(0)}
+            </Avatar>
+            <div className="transactions-page__log-user-info">
+              <Text className="transactions-page__log-user-name">{record.user.name}</Text>
+              <Tag
+                style={{
+                  fontSize: 10,
+                  lineHeight: '16px',
+                  padding: '0 6px',
+                  backgroundColor: roleStyle.bg,
+                  color: roleStyle.color,
+                  borderColor: roleStyle.border,
+                  borderRadius: 4,
+                }}
+              >
+                {record.user.role}
+              </Tag>
+            </div>
+          </div>
+        );
+      },
     },
     {
-      title: 'Açıklama', key: 'description',
+      title: 'İşlem Türü',
+      dataIndex: 'type',
+      key: 'type',
+      width: 110,
+      render: (type: LogType) => {
+        const item = TYPE_MAP[type] || { color: '#64748B', label: type, bg: '#F8FAFC' };
+        return (
+          <span className="transactions-page__type-pill" style={{ color: item.color, backgroundColor: item.bg }}>
+            <span className="transactions-page__type-dot" style={{ backgroundColor: item.color }} />
+            {item.label}
+          </span>
+        );
+      },
+    },
+    {
+      title: 'İşlem Açıklaması',
+      key: 'description',
       render: (_: unknown, record: LogEntry) => (
         <div className="transactions-page__log-desc">
           <Text className="transactions-page__log-desc-main">{record.description}</Text>
@@ -114,123 +217,234 @@ export default function TransactionsPage() {
     },
   ];
 
+
   return (
     <div className="transactions-page">
+      {/* 🚀 Top Bar / Action Hub */}
       <div className="transactions-page__top-bar">
-        <div className="transactions-page__title-row">
-          <h1 className="transactions-page__title">İşlemler</h1>
-          {state === 'loaded' && <Badge count={filteredLogs.length} color="#E32727" />}
+        <div className="transactions-page__title-group">
+          <h1 className="transactions-page__title">İşlem Geçmişi & Raporlar</h1>
         </div>
+
+
+
         <div className="transactions-page__actions">
-          <Button type="primary" danger icon={<ReloadOutlined />} onClick={retry}>Güncelle</Button>
+          {activeView === 'activities' && (
+            <Button icon={<DownloadOutlined />} onClick={exportToCSV} className="transactions-page__export-btn">
+              CSV Dışa Aktar
+            </Button>
+          )}
+
+          <Button
+            type="primary"
+            danger
+            icon={<ReloadOutlined spin={state === 'loading'} />}
+            onClick={retry}
+            className="transactions-page__refresh-btn"
+          >
+            Verileri Güncelle
+          </Button>
+
         </div>
       </div>
 
-      <div className="transactions-page__view-toggle">
-        <button
-          className={`transactions-page__view-btn ${activeView === 'reports' ? 'transactions-page__view-btn--active' : ''}`}
-          onClick={() => setActiveView('reports')}
-        >
-          <BarChartOutlined style={{ marginRight: 6 }} />
-          Raporlar
-        </button>
-        <button
-          className={`transactions-page__view-btn ${activeView === 'activities' ? 'transactions-page__view-btn--active' : ''}`}
-          onClick={() => setActiveView('activities')}
-        >
-          <EyeOutlined style={{ marginRight: 6 }} />
-          Aktiviteler
-        </button>
+      {/* 🧭 View Switcher Tabs */}
+      <div className="transactions-page__view-toggle-bar">
+        <div className="transactions-page__view-toggle">
+          <button
+            className={`transactions-page__view-btn ${activeView === 'reports' ? 'transactions-page__view-btn--active' : ''}`}
+            onClick={() => setActiveView('reports')}
+          >
+            <BarChartOutlined style={{ fontSize: 16 }} />
+            Finansal Raporlar & Analiz
+          </button>
+          <button
+            className={`transactions-page__view-btn ${activeView === 'activities' ? 'transactions-page__view-btn--active' : ''}`}
+            onClick={() => setActiveView('activities')}
+          >
+            <EyeOutlined style={{ fontSize: 16 }} />
+            Aktiviteler
+          </button>
+        </div>
+
+        {activeView === 'reports' && (
+          <div className="transactions-page__period-selector">
+            {(['daily', 'weekly', 'monthly'] as ReportPeriod[]).map((p) => (
+              <button
+                key={p}
+                className={`transactions-page__period-btn ${period === p ? 'transactions-page__period-btn--active' : ''}`}
+                onClick={() => setPeriod(p)}
+              >
+                {p === 'daily' ? 'Günlük' : p === 'weekly' ? 'Haftalık' : 'Aylık'}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
+      {/* Loading Skeleton View */}
       {state === 'loading' ? (
-        <>
+        <div className="transactions-page__loading-container">
           <div className="transactions-page__kpi-grid">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="transactions-page__kpi-card">
-                <Skeleton active paragraph={{ rows: 1 }} title={{ width: '60%' }} />
+                <Skeleton active paragraph={{ rows: 2 }} title={{ width: '40%' }} />
               </div>
             ))}
           </div>
-          <div className="transactions-page__section">
-            <Skeleton active paragraph={{ rows: 6 }} />
+          <div className="transactions-page__section" style={{ marginTop: 20 }}>
+            <Skeleton active paragraph={{ rows: 8 }} />
           </div>
-        </>
+        </div>
       ) : activeView === 'activities' ? (
-        <div className="transactions-page__section">
+        /* 📜 ACTIVITIES VIEW */
+        <div className="transactions-page__section transactions-page__section--activities">
+          <div className="transactions-page__log-header-row">
+            <div>
+              <h3 className="transactions-page__section-heading">Aktiviteler</h3>
+              <p className="transactions-page__section-subtext">
+                Tüm kullanıcı hareketleri, stok güncellemeleri ve fatura işlemleri detaylıca kayıt altına alınır.
+              </p>
+            </div>
+          </div>
+
+
+          {/* Filter Bar */}
           <div className="transactions-page__log-filter-row">
             <Select
               value={logTypeFilter}
               onChange={setLogTypeFilter}
+              style={{ width: 170 }}
+              size="large"
+              suffixIcon={<FilterOutlined />}
+              options={[
+                { value: 'all', label: 'Tüm İşlem Türleri' },
+                { value: 'sales', label: 'Satış İşlemleri' },
+                { value: 'stock', label: 'Stok Hareketleri' },
+              ]}
+            />
+
+
+            <Select
+              value={logRoleFilter}
+              onChange={setLogRoleFilter}
               style={{ width: 160 }}
               size="large"
               options={[
-                { value: 'all', label: 'Tüm İşlemler' },
-                { value: 'sales', label: 'Satış' },
-                { value: 'stock', label: 'Stok' },
+                { value: 'all', label: 'Tüm Rolleri Gör' },
+                { value: 'SuperAdmin', label: 'SuperAdmin' },
+                { value: 'Admin', label: 'Admin' },
+                { value: 'Personel', label: 'Personel' },
+                { value: 'Guest', label: 'Guest / Maliyeci' },
               ]}
             />
+
             <Input
-              prefix={<SearchOutlined />}
-              placeholder="Açıklama, kullanıcı veya modül ara..."
+              prefix={<SearchOutlined style={{ color: '#94A3B8' }} />}
+              placeholder="Açıklama, müşteri, detay veya IP adresi ara..."
               value={logSearch}
               onChange={(e) => setLogSearch(e.target.value)}
-              style={{ width: 320 }}
+              style={{ flex: 1, minWidth: 260 }}
               size="large"
               allowClear
             />
           </div>
 
+          {/* Table with Expandable Change Diffs */}
           <Table<LogEntry>
             columns={logColumns}
             dataSource={filteredLogs}
             rowKey="id"
-            pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (_t, range) => `Bu sayfada ${range[0]}-${range[1]} gösteriliyor` }}
-            locale={{ emptyText: 'Filtrelere uygun log bulunamadı' }}
-            scroll={{ x: 900 }}
+            pagination={{
+              pageSize: 10,
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50'],
+              showTotal: (total, range) => `${total} işlem kaydından ${range[0]}-${range[1]} arası gösteriliyor`,
+            }}
+            expandable={{
+              expandedRowRender: (record) => (
+                <div className="transactions-page__expand-diff-container">
+                  <div className="transactions-page__expand-diff-title">
+                    <InfoCircleOutlined style={{ color: '#3B82F6' }} />
+                    <span>İşlem Detay ve Alan Değişim Geçmişi</span>
+
+                  </div>
+
+                  {record.changes && record.changes.length > 0 ? (
+                    <div className="transactions-page__diff-grid">
+                      {record.changes.map((c, i) => (
+                        <div key={i} className="transactions-page__diff-card">
+                          <div className="transactions-page__diff-field">{c.field}</div>
+                          <div className="transactions-page__diff-values">
+                            <span className="transactions-page__diff-old">{c.oldValue}</span>
+                            <SwapRightOutlined className="transactions-page__diff-arrow" />
+                            <span className="transactions-page__diff-new">{c.newValue}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="transactions-page__diff-empty">
+                      Bu işlem için ekstra alan bazlı değişim kaydı bulunmuyor. Detay: {record.detail || record.description}
+                    </div>
+                  )}
+                </div>
+              ),
+              rowExpandable: (record) => Boolean((record.changes && record.changes.length > 0) || record.detail),
+            }}
+            locale={{
+              emptyText: (
+                <div className="transactions-page__empty-state">
+                  <InfoCircleOutlined style={{ fontSize: 32, color: '#94A3B8' }} />
+                  <p>Arama veya filtre kriterlerinize uygun sistem kaydı bulunamadı.</p>
+                </div>
+              ),
+            }}
+            scroll={{ x: 950 }}
+            className="transactions-page__log-table"
           />
         </div>
       ) : (
+        /* 📊 FINANCIAL REPORTS & METRICS VIEW */
         <>
-          <div className="transactions-page__period-selector">
-            {PERIODS.map((p) => (
-              <button
-                key={p.key}
-                className={`transactions-page__period-btn ${period === p.key ? 'transactions-page__period-btn--active' : ''}`}
-                onClick={() => setPeriod(p.key)}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-
+          {/* 💎 Premium KPI Cards */}
           <div className="transactions-page__kpi-grid">
+            {/* Card 1: Revenue */}
             <div className="transactions-page__kpi-card transactions-page__kpi-card--revenue">
               <div className="transactions-page__kpi-header">
                 <span className="transactions-page__kpi-label">Ciro</span>
                 <div className="transactions-page__kpi-icon transactions-page__kpi-icon--red">
-                  <DollarOutlined />
+                  <WalletOutlined />
                 </div>
               </div>
-              <div className="transactions-page__kpi-value">₺{summary?.revenue.toLocaleString('tr-TR') ?? '0'}</div>
-              <div className={`transactions-page__kpi-change ${isUp ? 'transactions-page__kpi-change--up' : 'transactions-page__kpi-change--down'}`}>
-                {isUp ? <ArrowUpOutlined /> : <ArrowDownOutlined />} %{Math.abs(summary?.revenueChange ?? 0)} {isUp ? 'artış' : 'azalış'}
+              <div className="transactions-page__kpi-value">
+                ₺{summary?.revenue.toLocaleString('tr-TR') ?? '0'}
+              </div>
+              <div className="transactions-page__kpi-footer">
+                <div className={`transactions-page__kpi-change ${isUp ? 'transactions-page__kpi-change--up' : 'transactions-page__kpi-change--down'}`}>
+                  {isUp ? <ArrowUpOutlined /> : <ArrowDownOutlined />} %{Math.abs(summary?.revenueChange ?? 0)}
+                </div>
+                <span className="transactions-page__kpi-subtext">önceki döneme göre</span>
               </div>
             </div>
 
+            {/* Card 2: Sales Count */}
             <div className="transactions-page__kpi-card transactions-page__kpi-card--sales">
               <div className="transactions-page__kpi-header">
-                <span className="transactions-page__kpi-label">Satış Adedi</span>
+                <span className="transactions-page__kpi-label">Tamamlanan Satış</span>
                 <div className="transactions-page__kpi-icon transactions-page__kpi-icon--blue">
                   <ShoppingCartOutlined />
                 </div>
               </div>
-              <div className="transactions-page__kpi-value">{summary?.salesCount ?? 0}</div>
-              <div className={`transactions-page__kpi-change ${(summary?.salesChange ?? 0) >= 0 ? 'transactions-page__kpi-change--up' : 'transactions-page__kpi-change--down'}`}>
-                {(summary?.salesChange ?? 0) >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />} %{Math.abs(summary?.salesChange ?? 0)}
+              <div className="transactions-page__kpi-value">
+                {summary?.salesCount ?? 0} <span className="transactions-page__kpi-unit">fatura</span>
+              </div>
+              <div className="transactions-page__kpi-footer">
+                <span className="transactions-page__kpi-subtext">toplam işlem adedi</span>
               </div>
             </div>
 
+            {/* Card 3: Total Stock Items */}
             <div className="transactions-page__kpi-card transactions-page__kpi-card--stock">
               <div className="transactions-page__kpi-header">
                 <span className="transactions-page__kpi-label">Toplam Stok</span>
@@ -238,156 +452,280 @@ export default function TransactionsPage() {
                   <InboxOutlined />
                 </div>
               </div>
-              <div className="transactions-page__kpi-value">{totalStockCount.toLocaleString('tr-TR')}</div>
-              <div className="transactions-page__kpi-sub">adet ürün</div>
+              <div className="transactions-page__kpi-value">
+                {totalStockCount.toLocaleString('tr-TR')} <span className="transactions-page__kpi-unit">adet</span>
+              </div>
+              <div className="transactions-page__kpi-footer">
+                <span className="transactions-page__kpi-subtext">toplam envanter adedi</span>
+              </div>
             </div>
 
+
+            {/* Card 4: Total Inventory Value */}
             <div className="transactions-page__kpi-card transactions-page__kpi-card--value">
               <div className="transactions-page__kpi-header">
                 <span className="transactions-page__kpi-label">Stok Değeri</span>
                 <div className="transactions-page__kpi-icon transactions-page__kpi-icon--green">
-                  <WalletOutlined />
+                  <MoneyCollectOutlined />
                 </div>
               </div>
-              <div className="transactions-page__kpi-value">₺{totalStockValue.toLocaleString('tr-TR')}</div>
-              <div className="transactions-page__kpi-sub">toplam stok değeri</div>
+              <div className="transactions-page__kpi-value">
+                ₺{totalStockValue.toLocaleString('tr-TR')}
+              </div>
+              <div className="transactions-page__kpi-footer">
+                <span className="transactions-page__kpi-subtext">Mevcut depo toplam satis degeri</span>
+              </div>
             </div>
           </div>
 
-          {/* Content Grid */}
+
+          {/* 📈 Content Grid: Charts & Sales Tables */}
           <div className="transactions-page__content-grid">
-            {/* Sales Table */}
+            {/* Left Box: Sales Records Table */}
             <div className="transactions-page__section">
               <div className="transactions-page__section-header">
                 <div className="transactions-page__section-title">
                   <div className="transactions-page__section-title-icon" style={{ background: '#FFF5F5', color: '#E32727' }}>
-                    <ShoppingCartOutlined />
+                    <FileTextOutlined />
                   </div>
-                  {period === 'daily' ? 'Günlük Satışlar' : period === 'weekly' ? 'Haftalık Satışlar' : 'Aylık Satışlar'}
+                  <div>
+                    <span>{period === 'daily' ? 'Son İşlemler & Faturalar' : period === 'weekly' ? 'Haftalık Satış Dökümü' : 'Aylık Satış Özetleri'}</span>
+                    <div className="transactions-page__section-subtitle">Detaylarını görmek için satıra tıklayın</div>
+                  </div>
                 </div>
               </div>
 
               {period === 'daily' && (
                 <Table<DailyReport>
                   columns={[
-                    { title: 'Tarih', dataIndex: 'date', key: 'date', width: 110 },
-                    { title: 'Fatura No', dataIndex: 'invoiceNo', key: 'invoiceNo', width: 130 },
+                    { title: 'Tarih', dataIndex: 'date', key: 'date', width: 100 },
+                    {
+                      title: 'Fatura No',
+                      dataIndex: 'invoiceNo',
+                      key: 'invoiceNo',
+                      width: 140,
+                      render: (val: string) => (
+                        <span className="transactions-page__invoice-link">
+                          <FilePdfOutlined style={{ marginRight: 4 }} />
+                          {val}
+                        </span>
+                      ),
+                    },
                     { title: 'Müşteri', dataIndex: 'customer', key: 'customer', ellipsis: true },
                     { title: 'Adet', dataIndex: 'itemCount', key: 'itemCount', width: 60, align: 'center' as const },
-                    { title: 'Tutar', dataIndex: 'total', key: 'total', width: 110, render: (v: number) => <Text strong>₺{v.toLocaleString('tr-TR')}</Text> },
+                    {
+                      title: 'Toplam Tutar',
+                      dataIndex: 'total',
+                      key: 'total',
+                      width: 120,
+                      align: 'right' as const,
+                      render: (v: number) => <Text strong style={{ color: '#1E293B' }}>₺{v.toLocaleString('tr-TR')}</Text>,
+                    },
                   ]}
                   dataSource={daily}
                   rowKey="invoiceNo"
-                  pagination={{ pageSize: 10, showSizeChanger: false }}
-                  size="small"
+                  onRow={(record) => ({
+                    onClick: () => openInvoiceModal(record),
+                    style: { cursor: 'pointer' },
+                  })}
+                  pagination={{ pageSize: 6, showSizeChanger: false }}
+                  size="middle"
+                  className="transactions-page__interactive-table"
                 />
               )}
 
               {period === 'weekly' && (
                 <Table<WeeklyReport>
                   columns={[
-                    { title: 'Hafta', dataIndex: 'week', key: 'week', width: 100 },
-                    { title: 'Satış', dataIndex: 'totalSales', key: 'totalSales', width: 80, align: 'center' as const },
-                    { title: 'Ciro', dataIndex: 'totalRevenue', key: 'totalRevenue', width: 130, render: (v: number) => <Text strong>₺{v.toLocaleString('tr-TR')}</Text> },
+                    { title: 'Hafta', dataIndex: 'week', key: 'week', width: 110 },
+                    { title: 'Satış Adedi', dataIndex: 'totalSales', key: 'totalSales', width: 100, align: 'center' as const },
+                    {
+                      title: 'Ort. Basket',
+                      dataIndex: 'avgRevenue',
+                      key: 'avgRevenue',
+                      width: 110,
+                      align: 'right' as const,
+                      render: (v: number) => `₺${v.toLocaleString('tr-TR')}`,
+                    },
+                    {
+                      title: 'Toplam Ciro',
+                      dataIndex: 'totalRevenue',
+                      key: 'totalRevenue',
+                      width: 130,
+                      align: 'right' as const,
+                      render: (v: number) => <Text strong style={{ color: '#1E293B' }}>₺{v.toLocaleString('tr-TR')}</Text>,
+                    },
                   ]}
                   dataSource={weekly}
                   rowKey="week"
                   pagination={false}
-                  size="small"
+                  size="middle"
                 />
               )}
 
               {period === 'monthly' && (
                 <Table<MonthlyReport>
                   columns={[
-                    { title: 'Ay', dataIndex: 'month', key: 'month', width: 90 },
-                    { title: 'Satış', dataIndex: 'totalSales', key: 'totalSales', width: 70, align: 'center' as const },
-                    { title: 'Ciro', dataIndex: 'totalRevenue', key: 'totalRevenue', width: 130, render: (v: number) => <Text strong>₺{v.toLocaleString('tr-TR')}</Text> },
+                    { title: 'Ay', dataIndex: 'month', key: 'month', width: 100 },
+                    { title: 'Satış Adedi', dataIndex: 'totalSales', key: 'totalSales', width: 90, align: 'center' as const },
                     {
-                      title: 'Büyüme', dataIndex: 'growth', key: 'growth', width: 90,
-                      render: (v: number) => v === 0 ? <Text type="secondary">—</Text> : (
-                        <Text style={{ color: v > 0 ? '#22C55E' : '#E32727', fontWeight: 600 }}>
-                          {v > 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />} %{Math.abs(v)}
-                        </Text>
-                      ),
+                      title: 'Ciro',
+                      dataIndex: 'totalRevenue',
+                      key: 'totalRevenue',
+                      width: 130,
+                      align: 'right' as const,
+                      render: (v: number) => <Text strong>₺{v.toLocaleString('tr-TR')}</Text>,
+                    },
+                    {
+                      title: 'Büyüme',
+                      dataIndex: 'growth',
+                      key: 'growth',
+                      width: 100,
+                      align: 'center' as const,
+                      render: (v: number) =>
+                        v === 0 ? (
+                          <Tag style={{ borderRadius: 4 }}>—</Tag>
+                        ) : (
+                          <Tag color={v > 0 ? 'success' : 'error'} style={{ borderRadius: 4, fontWeight: 600 }}>
+                            {v > 0 ? '+' : ''}{v}%
+                          </Tag>
+                        ),
                     },
                   ]}
                   dataSource={monthly}
                   rowKey="month"
                   pagination={false}
-                  size="small"
+                  size="middle"
                 />
               )}
             </div>
 
-            {/* Chart */}
+            {/* Right Box: Interactive Visual Chart Engine */}
             <div className="transactions-page__section">
               <div className="transactions-page__section-header">
                 <div className="transactions-page__section-title">
-                  <div className="transactions-page__section-title-icon" style={{ background: '#FFF5F5', color: '#E32727' }}>
-                    <BarChartOutlined />
+                  <div className="transactions-page__section-title-icon" style={{ background: '#F0FDF4', color: '#22C55E' }}>
+                    <RiseOutlined />
                   </div>
-                  {period === 'daily' ? 'Son 7 Gün Ciro' : period === 'weekly' ? 'Haftalık Trend' : 'Aylık Trend'}
+                  <div>
+                    <span>{period === 'daily' ? 'Günlük Ciro Grafiği' : period === 'weekly' ? 'Haftalık Trend Analizi' : 'Aylık Performans Trendi'}</span>
+                    <div className="transactions-page__section-subtitle">
+                      En yüksek ciro: <strong style={{ color: '#E32727' }}>{formatTurkishDate(peakDailyDay?.date || '')} (₺{peakDailyDay?.total.toLocaleString('tr-TR')})</strong>
+                    </div>
+                  </div>
                 </div>
               </div>
 
+              {/* Custom High-Quality Interactive Visual Bar Chart */}
               {period === 'daily' && (
-                <div className="transactions-page__chart">
-                  {daily.map((d) => {
-                    const height = Math.max((d.total / maxDaily) * 140, 8);
-                    const [day, month] = d.date.split('.');
-                    const months = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
-                    const label = `${parseInt(day)} ${months[parseInt(month) - 1]}`;
-                    return (
-                      <div className="transactions-page__chart-bar-wrap" key={d.invoiceNo}>
-                        <div className="transactions-page__chart-value">₺{d.total}</div>
-                        <div className="transactions-page__chart-bar" style={{ height }} />
-                        <div className="transactions-page__chart-label">{label}</div>
-                      </div>
-                    );
-                  })}
+                <div className="transactions-page__chart-container">
+                  <div className="transactions-page__chart-gridlines">
+                    <span className="transactions-page__grid-label">₺{maxDaily}</span>
+                    <span className="transactions-page__grid-label">₺{Math.round(maxDaily / 2)}</span>
+                    <span className="transactions-page__grid-label">₺0</span>
+                  </div>
+
+                  <div className="transactions-page__chart-bars-wrap">
+                    {daily.map((d, index) => {
+                      const heightPercent = Math.max((d.total / maxDaily) * 100, 6);
+                      const isPeak = d.total === peakDailyDay?.total;
+                      const isHovered = hoveredChartIndex === index;
+
+                      return (
+                        <Popover
+                          key={d.invoiceNo}
+                          content={
+                            <div className="transactions-page__chart-popover">
+                              <div className="transactions-page__popover-date">{formatTurkishDate(d.date)}</div>
+                              <div className="transactions-page__popover-row">
+                                <span>Satış Tutarı:</span> <strong>₺{d.total.toLocaleString('tr-TR')}</strong>
+                              </div>
+                              <div className="transactions-page__popover-row">
+                                <span>Ürün Adedi:</span> <strong>{d.itemCount} adet</strong>
+                              </div>
+                              <div className="transactions-page__popover-row">
+                                <span>Müşteri:</span> <strong>{d.customer}</strong>
+                              </div>
+                            </div>
+                          }
+                          trigger="hover"
+                        >
+                          <div
+                            className={`transactions-page__bar-group ${isPeak ? 'transactions-page__bar-group--peak' : ''}`}
+                            onMouseEnter={() => setHoveredChartIndex(index)}
+                            onMouseLeave={() => setHoveredChartIndex(null)}
+                            onClick={() => openInvoiceModal(d)}
+                          >
+                            {isPeak && <span className="transactions-page__peak-badge">Zirve</span>}
+                            <div className="transactions-page__bar-val">₺{d.total}</div>
+                            <div className="transactions-page__bar-track">
+                              <div
+                                className={`transactions-page__bar-fill ${isHovered ? 'transactions-page__bar-fill--hover' : ''}`}
+                                style={{ height: `${heightPercent}%` }}
+                              />
+                            </div>
+                            <div className="transactions-page__bar-label">{formatTurkishDate(d.date)}</div>
+                          </div>
+                        </Popover>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
               {period === 'weekly' && (
-                <>
-                  <div className="transactions-page__comparison" style={{ marginBottom: 16 }}>
-                    <div className="transactions-page__comparison-card transactions-page__comparison-card--current">
-                      <div className="transactions-page__comparison-title" style={{ color: '#22C55E' }}>Bu Hafta</div>
-                      <div className="transactions-page__comparison-row"><span>Ciro</span><span className="transactions-page__comparison-value">₺{currentWeek?.totalRevenue.toLocaleString('tr-TR')}</span></div>
-                      <div className="transactions-page__comparison-row"><span>Satış</span><span className="transactions-page__comparison-value">{currentWeek?.totalSales}</span></div>
+                <div className="transactions-page__weekly-view">
+                  <div className="transactions-page__comparison-cards">
+                    <div className="transactions-page__comp-card transactions-page__comp-card--active">
+                      <div className="transactions-page__comp-label">Bu Hafta (32. Hafta)</div>
+                      <div className="transactions-page__comp-val">₺{weekly[0]?.totalRevenue.toLocaleString('tr-TR')}</div>
+                      <div className="transactions-page__comp-sub">{weekly[0]?.totalSales} tamamlanan satış</div>
                     </div>
-                    <div className="transactions-page__comparison-card transactions-page__comparison-card--previous">
-                      <div className="transactions-page__comparison-title" style={{ color: '#64748B' }}>Geçen Hafta</div>
-                      <div className="transactions-page__comparison-row"><span>Ciro</span><span className="transactions-page__comparison-value">₺{previousWeek?.totalRevenue.toLocaleString('tr-TR')}</span></div>
-                      <div className="transactions-page__comparison-row"><span>Satış</span><span className="transactions-page__comparison-value">{previousWeek?.totalSales}</span></div>
+
+                    <div className="transactions-page__comp-card">
+                      <div className="transactions-page__comp-label">Geçen Hafta (31. Hafta)</div>
+                      <div className="transactions-page__comp-val">₺{weekly[1]?.totalRevenue.toLocaleString('tr-TR')}</div>
+                      <div className="transactions-page__comp-sub">{weekly[1]?.totalSales} tamamlanan satış</div>
                     </div>
                   </div>
-                  <div className="transactions-page__chart">
-                    {[...weekly].reverse().map((w) => {
-                      const height = Math.max((w.totalRevenue / maxWeekly) * 140, 8);
-                      return (
-                        <div className="transactions-page__chart-bar-wrap" key={w.week}>
-                          <div className="transactions-page__chart-value">₺{(w.totalRevenue / 1000).toFixed(1)}k</div>
-                          <div className={`transactions-page__chart-bar ${w.week === currentWeek?.week ? 'transactions-page__chart-bar--current' : ''}`} style={{ height }} />
-                          <div className="transactions-page__chart-label">{w.week}</div>
-                        </div>
-                      );
-                    })}
+
+                  <div className="transactions-page__chart-container" style={{ marginTop: 24 }}>
+                    <div className="transactions-page__chart-bars-wrap">
+                      {[...weekly].reverse().map((w) => {
+                        const heightPercent = Math.max((w.totalRevenue / maxWeekly) * 100, 8);
+                        return (
+                          <div key={w.week} className="transactions-page__bar-group">
+                            <div className="transactions-page__bar-val">₺{(w.totalRevenue / 1000).toFixed(1)}k</div>
+                            <div className="transactions-page__bar-track">
+                              <div className="transactions-page__bar-fill" style={{ height: `${heightPercent}%` }} />
+                            </div>
+                            <div className="transactions-page__bar-label">{w.week}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </>
+                </div>
               )}
 
+
               {period === 'monthly' && (
-                <div className="transactions-page__trend-scroll">
-                  {monthly.map((m) => {
-                    const height = Math.max((m.totalRevenue / maxMonthly) * 100, 8);
-                    const isCurrent = m.month === new Date().toLocaleString('tr-TR', { month: 'long' }).charAt(0).toUpperCase() + new Date().toLocaleString('tr-TR', { month: 'long' }).slice(1);
+                <div className="transactions-page__monthly-trend-grid">
+                  {monthly.slice(0, 8).map((m) => {
+                    const heightPercent = Math.max((m.totalRevenue / maxMonthly) * 100, 8);
                     return (
-                      <div className={`transactions-page__trend-card ${isCurrent ? 'transactions-page__trend-card--current' : ''}`} key={m.month}>
-                        <div className="transactions-page__trend-amount">₺{(m.totalRevenue / 1000).toFixed(1)}k</div>
-                        <div className="transactions-page__trend-bar" style={{ height }} />
-                        <div className="transactions-page__trend-month">{m.month.slice(0, 3)}</div>
+                      <div key={m.month} className="transactions-page__monthly-card">
+                        <div className="transactions-page__monthly-header">
+                          <span className="transactions-page__monthly-name">{m.month}</span>
+                          {m.growth !== 0 && (
+                            <span className={`transactions-page__growth-pill ${m.growth > 0 ? 'transactions-page__growth-pill--up' : 'transactions-page__growth-pill--down'}`}>
+                              {m.growth > 0 ? '+' : ''}{m.growth}%
+                            </span>
+                          )}
+                        </div>
+                        <div className="transactions-page__monthly-revenue">₺{m.totalRevenue.toLocaleString('tr-TR')}</div>
+                        <Progress percent={Math.round(heightPercent)} showInfo={false} strokeColor="#E32727" size="small" />
+                        <div className="transactions-page__monthly-sales">{m.totalSales} satış işlemi</div>
                       </div>
                     );
                   })}
@@ -395,40 +733,187 @@ export default function TransactionsPage() {
               )}
             </div>
 
-            {/* Product Report */}
+            {/* Bottom Row: Top Selling Products Table */}
             <div className="transactions-page__section transactions-page__section--full">
               <div className="transactions-page__section-header">
                 <div className="transactions-page__section-title">
-                  <div className="transactions-page__section-title-icon" style={{ background: '#FFF5F5', color: '#E32727' }}>
+                  <div className="transactions-page__section-title-icon" style={{ background: '#FEF3C7', color: '#D97706' }}>
                     <BarChartOutlined />
                   </div>
-                  En Çok Satan Ürünler
+                  <div>
+                    <span>En Çok Satan 5 Ürün</span>
+
+                    <div className="transactions-page__section-subtitle">Satış hacmine ve toplam ciro payına göre sıralanmıştır</div>
+                  </div>
                 </div>
               </div>
+
               <Table<ProductReport>
-                className="transactions-page__product-table"
                 columns={[
-                  { title: '#', dataIndex: 'rank', key: 'rank', width: 50, render: (v: number) => <Tag color={v <= 3 ? 'red' : 'default'}>{v}</Tag> },
-                  { title: 'Ürün', dataIndex: 'productName', key: 'productName', ellipsis: true },
-                  { title: 'Kategori', dataIndex: 'category', key: 'category', width: 120, render: (v: string) => <Tag>{v}</Tag> },
-                  { title: 'Adet', dataIndex: 'salesCount', key: 'salesCount', width: 80, align: 'center' as const },
-                  { title: 'Ciro', dataIndex: 'totalRevenue', key: 'totalRevenue', width: 130, render: (v: number) => <Text strong>₺{v.toLocaleString('tr-TR')}</Text> },
                   {
-                    title: 'Ciro %', dataIndex: 'revenuePercent', key: 'revenuePercent', width: 150,
-                    render: (v: number) => (
-                      <Progress percent={v} size="small" strokeColor="#E32727" style={{ margin: 0 }} />
+                    title: 'Sıra',
+                    dataIndex: 'rank',
+                    key: 'rank',
+                    width: 70,
+                    align: 'center' as const,
+                    render: (rank: number) => {
+                      const medalColors: Record<number, string> = { 1: '#FFD700', 2: '#C0C0C0', 3: '#CD7F32' };
+                      return rank <= 3 ? (
+                        <Tag color={medalColors[rank]} style={{ color: '#0F172A', fontWeight: 700, borderRadius: 12, padding: '0 8px' }}>
+                          #{rank}
+                        </Tag>
+                      ) : (
+                        <Text type="secondary">#{rank}</Text>
+                      );
+                    },
+                  },
+                  {
+                    title: 'Ürün Adı',
+                    dataIndex: 'productName',
+                    key: 'productName',
+                    render: (name: string) => <Text strong style={{ color: '#1E293B' }}>{name}</Text>,
+                  },
+                  {
+                    title: 'Kategori',
+                    dataIndex: 'category',
+                    key: 'category',
+                    width: 140,
+                    render: (cat: string) => <Tag color="blue" style={{ borderRadius: 4 }}>{cat}</Tag>,
+                  },
+                  {
+                    title: 'Satış Adedi',
+                    dataIndex: 'salesCount',
+                    key: 'salesCount',
+                    width: 110,
+                    align: 'center' as const,
+                    render: (count: number) => <Tag color="cyan">{count} Adet</Tag>,
+                  },
+                  {
+                    title: 'Toplam Ciro',
+                    dataIndex: 'totalRevenue',
+                    key: 'totalRevenue',
+                    width: 150,
+                    align: 'right' as const,
+                    render: (rev: number) => <Text strong style={{ color: '#22C55E' }}>₺{rev.toLocaleString('tr-TR')}</Text>,
+                  },
+                  {
+                    title: 'Ciro Payı %',
+                    dataIndex: 'revenuePercent',
+                    key: 'revenuePercent',
+                    width: 200,
+                    render: (percent: number) => (
+                      <div className="transactions-page__progress-wrap">
+                        <Progress percent={percent} strokeColor={{ '0%': '#E32727', '100%': '#F97316' }} size="small" />
+                      </div>
                     ),
                   },
                 ]}
                 dataSource={products.slice(0, 5)}
                 rowKey="rank"
                 pagination={false}
-                size="small"
+                size="middle"
               />
             </div>
           </div>
         </>
       )}
+
+      {/* 📄 INVOICE PREVIEW & PRINT MODAL */}
+      <Modal
+        title={null}
+        open={isInvoiceModalOpen}
+        onCancel={closeInvoiceModal}
+        footer={null}
+        width={720}
+        centered
+        className="transactions-page__invoice-modal"
+      >
+        {selectedSale && (
+          <div className="transactions-page__invoice-modal-content">
+            {/* Modal Header */}
+            <div className="transactions-page__invoice-modal-header">
+              <div>
+                <div className="transactions-page__invoice-brand">
+                  <ShopOutlined /> ŞAHİN MOTOR & YEDEK PARÇA
+                </div>
+                <h2 className="transactions-page__invoice-title">RESMİ SATIŞ FATURASI</h2>
+                <Text type="secondary">Fatura No: <strong>{selectedSale.id}</strong></Text>
+              </div>
+              <div className="transactions-page__invoice-status-badge">
+                <Tag color={STATUS_MAP[selectedSale.durum]?.color || 'default'} style={{ fontSize: 13, padding: '4px 12px', borderRadius: 6 }}>
+                  {STATUS_MAP[selectedSale.durum]?.label || selectedSale.durum}
+                </Tag>
+              </div>
+            </div>
+
+            <Divider style={{ margin: '16px 0' }} />
+
+            {/* Info Grid */}
+            <div className="transactions-page__invoice-info-grid">
+              <div className="transactions-page__invoice-info-box">
+                <Text type="secondary" className="transactions-page__info-label">MÜŞTERİ BİLGİLERİ</Text>
+                <div className="transactions-page__info-val"><strong>{selectedSale.musteriAdi}</strong></div>
+                <div className="transactions-page__info-sub">{selectedSale.musteriTelefon}</div>
+                {selectedSale.musteriEmail && <div className="transactions-page__info-sub">{selectedSale.musteriEmail}</div>}
+              </div>
+
+              <div className="transactions-page__invoice-info-box">
+                <Text type="secondary" className="transactions-page__info-label">ÖDEME & TARİH</Text>
+                <div className="transactions-page__info-val">
+                  {PAYMENT_METHOD_MAP[selectedSale.odemeYontemi]?.icon} {PAYMENT_METHOD_MAP[selectedSale.odemeYontemi]?.label || selectedSale.odemeYontemi}
+                </div>
+                <div className="transactions-page__info-sub">Tarih: {selectedSale.createdAt}</div>
+                <div className="transactions-page__info-sub">Bayi Kodu: {selectedSale.bayiId}</div>
+              </div>
+            </div>
+
+            {/* Itemized Table */}
+            <div className="transactions-page__invoice-items-title">FATURA KALEMLERİ</div>
+            <Table
+              columns={[
+                { title: 'Ürün Kodu', dataIndex: 'productCode', key: 'productCode', width: 110 },
+                { title: 'Ürün / Hizmet', dataIndex: 'productName', key: 'productName' },
+                { title: 'Birim Fiyat', dataIndex: 'unitPrice', key: 'unitPrice', width: 110, align: 'right' as const, render: (v: number) => `₺${v.toLocaleString('tr-TR')}` },
+                { title: 'Adet', dataIndex: 'quantity', key: 'quantity', width: 70, align: 'center' as const },
+                { title: 'Toplam', dataIndex: 'total', key: 'total', width: 120, align: 'right' as const, render: (v: number) => <strong>₺{v.toLocaleString('tr-TR')}</strong> },
+              ]}
+              dataSource={selectedSale.items}
+              rowKey="productId"
+              pagination={false}
+              size="small"
+              className="transactions-page__invoice-table"
+            />
+
+            {/* Grand Total Breakdown */}
+            <div className="transactions-page__invoice-total-card">
+              <div className="transactions-page__total-row">
+                <span>Ara Toplam:</span>
+                <span>₺{Math.round(selectedSale.toplamTutar / 1.2).toLocaleString('tr-TR')}</span>
+              </div>
+              <div className="transactions-page__total-row">
+                <span>KDV (%20):</span>
+                <span>₺{Math.round(selectedSale.toplamTutar - selectedSale.toplamTutar / 1.2).toLocaleString('tr-TR')}</span>
+              </div>
+              <Divider style={{ margin: '8px 0' }} />
+              <div className="transactions-page__grand-total-row">
+                <span>Genel Toplam:</span>
+                <span className="transactions-page__grand-price">₺{selectedSale.toplamTutar.toLocaleString('tr-TR')}</span>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="transactions-page__invoice-modal-actions">
+              <Button icon={<PrinterOutlined />} onClick={() => window.print()}>
+                Faturayı Yazdır
+              </Button>
+              <Button type="primary" danger onClick={closeInvoiceModal}>
+                Kapat
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
+
