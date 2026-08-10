@@ -47,7 +47,8 @@ let sales: Sale[] = [
       { productId: 'p4', productName: 'Fren Balatası Ön Set', productCode: 'FRN-002', unitPrice: 280, quantity: 1, discountPercent: 0, discountAmount: 0, total: 280 },
       { productId: 'p3', productName: 'Fren Hidroliği DOT4', productCode: 'FRN-001', unitPrice: 120, quantity: 2, discountPercent: 0, discountAmount: 0, total: 240 },
     ],
-    toplamTutar: 624, odemeYontemi: 'havale', durum: 'beklemede',
+    toplamTutar: 624, odemeYontemi: 'havale', durum: 'taslak',
+
     createdAt: '05.08.2026 10:15', updatedAt: '05.08.2026 10:15',
   },
   {

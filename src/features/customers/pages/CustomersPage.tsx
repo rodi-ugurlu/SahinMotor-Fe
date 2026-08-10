@@ -12,7 +12,9 @@ import {
   Space,
   Table,
   Tag,
+  Tooltip,
   Typography,
+
 } from 'antd';
 import {
   DeleteOutlined,
@@ -135,17 +137,24 @@ export default function CustomersPage() {
       width: 110,
     },
     {
-      title: '',
+      title: 'İşlemler',
       key: 'actions',
-      width: 100,
+      width: 110,
       render: (_: unknown, record: Customer) => (
-        <Space size={4}>
-          <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => setDetailCustomer(record)} />
-          <Button type="text" size="small" icon={<EditOutlined />} onClick={() => openEdit(record)} />
-          <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => setDeleteTarget(record)} />
+        <Space size={8}>
+          <Tooltip title="Detay Gör" placement="top">
+            <Button type="text" icon={<EyeOutlined style={{ fontSize: 16 }} />} onClick={() => setDetailCustomer(record)} />
+          </Tooltip>
+          <Tooltip title="Düzenle" placement="top">
+            <Button type="text" icon={<EditOutlined style={{ fontSize: 16 }} />} onClick={() => openEdit(record)} />
+          </Tooltip>
+          <Tooltip title="Sil" placement="top">
+            <Button type="text" danger icon={<DeleteOutlined style={{ fontSize: 16 }} />} onClick={() => setDeleteTarget(record)} />
+          </Tooltip>
         </Space>
       ),
     },
+
   ];
 
   return (

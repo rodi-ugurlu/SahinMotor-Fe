@@ -37,8 +37,9 @@ export function useUsers(): UseUsersReturn {
     setState('loading');
     getUsers()
       .then((data) => {
-        setUsers(data);
-        setState(data.length === 0 ? 'empty' : 'loaded');
+        const nonSuperAdmins = data.filter((u) => u.role !== 'SuperAdmin');
+        setUsers(nonSuperAdmins);
+        setState(nonSuperAdmins.length === 0 ? 'empty' : 'loaded');
       })
       .catch(() => setState('error'));
   }, []);
@@ -48,7 +49,7 @@ export function useUsers(): UseUsersReturn {
   }, [fetch]);
 
   const filteredUsers = useMemo(() => {
-    let result = users;
+    let result = users.filter((u) => u.role !== 'SuperAdmin');
     if (roleFilter !== 'all') {
       result = result.filter((u) => u.role === roleFilter);
     }
@@ -62,6 +63,7 @@ export function useUsers(): UseUsersReturn {
     }
     return result;
   }, [users, search, roleFilter]);
+
 
   const handleAdd = async (data: {
     fullName: string; email: string; password: string;

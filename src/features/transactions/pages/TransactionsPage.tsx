@@ -36,9 +36,9 @@ import {
   SearchOutlined,
   ShopOutlined,
   ShoppingCartOutlined,
-  SwapRightOutlined,
   WalletOutlined,
 } from '@ant-design/icons';
+
 import { useTransactions } from '../hooks/useTransactions';
 import type { DailyReport, MonthlyReport, ProductReport, ReportPeriod, WeeklyReport } from '../../reports/types/reports';
 import type { LogEntry, LogType } from '../../logs/types/logs';
@@ -212,9 +212,19 @@ export default function TransactionsPage() {
         <div className="transactions-page__log-desc">
           <Text className="transactions-page__log-desc-main">{record.description}</Text>
           {record.detail && <Text className="transactions-page__log-desc-detail">{record.detail}</Text>}
+          {record.changes && record.changes.length > 0 && (
+            <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {record.changes.map((c, i) => (
+                <Text key={i} type="secondary" style={{ fontSize: 12 }}>
+                  • <strong>{c.field}:</strong> <span style={{ textDecoration: 'line-through', opacity: 0.7 }}>{c.oldValue}</span> ➔ <strong style={{ color: '#22C55E' }}>{c.newValue}</strong>
+                </Text>
+              ))}
+            </div>
+          )}
         </div>
       ),
     },
+
   ];
 
 
@@ -341,7 +351,7 @@ export default function TransactionsPage() {
 
             <Input
               prefix={<SearchOutlined style={{ color: '#94A3B8' }} />}
-              placeholder="Açıklama, müşteri, detay veya IP adresi ara..."
+              placeholder="Açıklama, müşteri veya detay ara..."
               value={logSearch}
               onChange={(e) => setLogSearch(e.target.value)}
               style={{ flex: 1, minWidth: 260 }}
@@ -350,48 +360,18 @@ export default function TransactionsPage() {
             />
           </div>
 
-          {/* Table with Expandable Change Diffs */}
+          {/* Table */}
           <Table<LogEntry>
             columns={logColumns}
             dataSource={filteredLogs}
             rowKey="id"
             pagination={{
               pageSize: 10,
-              showSizeChanger: true,
-              pageSizeOptions: ['10', '20', '50'],
-              showTotal: (total, range) => `${total} işlem kaydından ${range[0]}-${range[1]} arası gösteriliyor`,
+              showSizeChanger: false,
+              showTotal: (_t, range) => `Bu sayfada ${range[0]}-${range[1]} gösteriliyor`,
             }}
-            expandable={{
-              expandedRowRender: (record) => (
-                <div className="transactions-page__expand-diff-container">
-                  <div className="transactions-page__expand-diff-title">
-                    <InfoCircleOutlined style={{ color: '#3B82F6' }} />
-                    <span>İşlem Detay ve Alan Değişim Geçmişi</span>
 
-                  </div>
 
-                  {record.changes && record.changes.length > 0 ? (
-                    <div className="transactions-page__diff-grid">
-                      {record.changes.map((c, i) => (
-                        <div key={i} className="transactions-page__diff-card">
-                          <div className="transactions-page__diff-field">{c.field}</div>
-                          <div className="transactions-page__diff-values">
-                            <span className="transactions-page__diff-old">{c.oldValue}</span>
-                            <SwapRightOutlined className="transactions-page__diff-arrow" />
-                            <span className="transactions-page__diff-new">{c.newValue}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="transactions-page__diff-empty">
-                      Bu işlem için ekstra alan bazlı değişim kaydı bulunmuyor. Detay: {record.detail || record.description}
-                    </div>
-                  )}
-                </div>
-              ),
-              rowExpandable: (record) => Boolean((record.changes && record.changes.length > 0) || record.detail),
-            }}
             locale={{
               emptyText: (
                 <div className="transactions-page__empty-state">
@@ -403,6 +383,7 @@ export default function TransactionsPage() {
             scroll={{ x: 950 }}
             className="transactions-page__log-table"
           />
+
         </div>
       ) : (
         /* 📊 FINANCIAL REPORTS & METRICS VIEW */

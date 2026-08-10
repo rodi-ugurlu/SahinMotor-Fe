@@ -100,13 +100,13 @@ export default function StockPage() {
       key: 'product',
       width: 260,
       render: (_: unknown, record: Product) => (
-        <div
-          className="stock-page__product-cell"
-          onMouseEnter={(e) => handleMouseEnter(e, record.imageUrl)}
-          onMouseMove={handleMouseMove}
-          onMouseLeave={handleMouseLeave}
-        >
-          <div className="stock-page__product-image">
+        <div className="stock-page__product-cell">
+          <div
+            className="stock-page__product-image"
+            onMouseEnter={(e) => handleMouseEnter(e, record.imageUrl)}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+          >
             {record.imageUrl ? <img src={record.imageUrl} alt={record.name} /> : record.name.charAt(0)}
           </div>
           <div className="stock-page__product-info">
@@ -114,6 +114,7 @@ export default function StockPage() {
             <Text className="stock-page__product-barcode">{record.barcode}</Text>
           </div>
         </div>
+
       ),
     },
     {

@@ -11,9 +11,11 @@ import {
   Space,
   Table,
   Tag,
+  Tooltip,
   Typography,
   Upload,
 } from 'antd';
+
 import {
   DeleteOutlined,
   EditOutlined,
@@ -176,13 +178,20 @@ export default function UsersPage() {
       key: 'actions',
       width: 120,
       render: (_: unknown, record: User) => (
-        <Space size={4}>
-          <Button type="text" size="small" icon={<EditOutlined />} onClick={() => openEdit(record)} />
-          <Button type="text" size="small" icon={<KeyOutlined />} onClick={() => { setResetTarget(record); resetForm.resetFields(); }} title="Şifre Sıfırla" />
-          <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => setDeleteTarget(record)} />
+        <Space size={8}>
+          <Tooltip title="Düzenle" placement="top">
+            <Button type="text" icon={<EditOutlined style={{ fontSize: 16 }} />} onClick={() => openEdit(record)} />
+          </Tooltip>
+          <Tooltip title="Şifre Sıfırla" placement="top">
+            <Button type="text" icon={<KeyOutlined style={{ fontSize: 16 }} />} onClick={() => { setResetTarget(record); resetForm.resetFields(); }} />
+          </Tooltip>
+          <Tooltip title="Sil" placement="top">
+            <Button type="text" danger icon={<DeleteOutlined style={{ fontSize: 16 }} />} onClick={() => setDeleteTarget(record)} />
+          </Tooltip>
         </Space>
       ),
     },
+
   ];
 
   return (

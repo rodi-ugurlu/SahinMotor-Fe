@@ -15,17 +15,17 @@ import {
   HistoryOutlined,
   IdcardOutlined,
   InboxOutlined,
-  KeyOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   BellOutlined,
   ShopOutlined,
   ShoppingCartOutlined,
-  SwapOutlined,
   TeamOutlined,
   UserOutlined,
 } from '@ant-design/icons';
+
+
 import { useNotifications, clearNotifications } from '../shared/notifications';
 import { on } from '../shared/events';
 import { ProfileModal } from '../components/ProfileModal';
@@ -84,10 +84,10 @@ export default function DashboardLayout() {
 
   const userMenuItems = [
     { key: 'profile', icon: <UserOutlined />, label: 'Profil' },
-    { key: 'password', icon: <KeyOutlined />, label: 'Şifremi Güncelle' },
     { type: 'divider' as const },
     { key: 'logout', icon: <LogoutOutlined />, label: 'Çıkış Yap', danger: true },
   ];
+
 
   return (
     <Layout className="dashboard-layout">
@@ -119,13 +119,12 @@ export default function DashboardLayout() {
           style={{ marginTop: 8 }}
         />
 
-        <div className="dashboard-layout__sider-bottom">
+        <div className="dashboard-layout__sider-bottom" onClick={() => navigate('/select-business')}>
           {collapsed ? (
             <Button
               type="text"
               size="small"
-              icon={<SwapOutlined />}
-              onClick={() => navigate('/select-business')}
+              icon={<LogoutOutlined />}
               style={{ color: '#94A3B8' }}
             />
           ) : (
@@ -134,13 +133,14 @@ export default function DashboardLayout() {
               <Button
                 type="text"
                 size="small"
-                icon={<SwapOutlined />}
-                onClick={() => navigate('/select-business')}
+                icon={<LogoutOutlined />}
                 style={{ color: '#94A3B8' }}
               />
             </>
           )}
         </div>
+
+
       </Sider>
 
       <Layout>
@@ -201,7 +201,8 @@ export default function DashboardLayout() {
               </Badge>
             </Popover>
 
-            <Dropdown menu={{ items: userMenuItems, onClick: ({ key }) => { if (key === 'profile') setProfileOpen(true); if (key === 'password') setPasswordOpen(true); if (key === 'logout') handleLogout(); } }}>
+            <Dropdown menu={{ items: userMenuItems, onClick: ({ key }) => { if (key === 'profile') setProfileOpen(true); if (key === 'logout') handleLogout(); } }}>
+
               <Avatar
                 size={32}
                 src={profile.photoUrl}
@@ -225,7 +226,9 @@ export default function DashboardLayout() {
           setProfileOpen(false);
         }}
         initialData={profile}
+        onOpenPasswordModal={() => setPasswordOpen(true)}
       />
+
 
       <PasswordModal
         open={passwordOpen}

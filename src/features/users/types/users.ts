@@ -29,7 +29,8 @@ export type UserEditFormValues = {
   dealerId: string;
 };
 
-export const USER_ROLES: UserRole[] = ['SuperAdmin', 'Admin', 'Personel', 'Guest'];
+export const USER_ROLES: UserRole[] = ['Admin', 'Personel', 'Guest'];
+
 
 export const ROLE_LABELS: Record<UserRole, string> = {
   SuperAdmin: 'Süper Admin',

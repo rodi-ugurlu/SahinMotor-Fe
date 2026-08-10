@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Form, Input, Modal, Upload } from 'antd';
+import { Button, Form, Input, Modal, Upload } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd';
 import { getBase64 } from '../shared/image';
@@ -15,9 +15,10 @@ interface ProfileModalProps {
   onCancel: () => void;
   onSave: (values: ProfileData) => void;
   initialData: ProfileData;
+  onOpenPasswordModal?: () => void;
 }
 
-export function ProfileModal({ open, onCancel, onSave, initialData }: ProfileModalProps) {
+export function ProfileModal({ open, onCancel, onSave, initialData, onOpenPasswordModal }: ProfileModalProps) {
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState<UploadFile[]>([]);
 
@@ -81,7 +82,26 @@ export function ProfileModal({ open, onCancel, onSave, initialData }: ProfileMod
         <Form.Item name="email" label="E-posta" rules={[{ required: true, message: 'E-posta gerekli' }, { type: 'email', message: 'Geçerli bir e-posta girin' }]}>
           <Input placeholder="ornek@mail.com" size="large" type="email" />
         </Form.Item>
+        <Form.Item label="Şifre">
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <Input.Password value="••••••••" disabled size="large" style={{ flex: 1 }} />
+            <Button
+              type="primary"
+              danger
+              size="large"
+              onClick={() => {
+                onCancel();
+                onOpenPasswordModal?.();
+              }}
+
+              style={{ fontWeight: 600 }}
+            >
+              Güncelle
+            </Button>
+          </div>
+        </Form.Item>
       </Form>
     </Modal>
   );
 }
+

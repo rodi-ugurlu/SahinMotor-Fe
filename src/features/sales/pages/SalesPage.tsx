@@ -15,9 +15,11 @@ import {
   Space,
   Table,
   Tag,
+  Tooltip,
   Typography,
   message,
 } from 'antd';
+
 import {
   CameraOutlined,
   CheckCircleOutlined,
@@ -42,10 +44,17 @@ const { Text } = Typography;
 
 const STATUS_MAP: Record<string, { color: string; label: string }> = {
   bitti: { color: 'green', label: 'Tamamlandı' },
-  beklemede: { color: 'orange', label: 'Beklemede' },
   iptal: { color: 'red', label: 'İptal' },
-  taslak: { color: 'default', label: 'Taslak' },
+  taslak: { color: 'orange', label: 'Taslak' },
 };
+
+const FILTER_TAG_COLORS: Record<string, string> = {
+  all: 'blue',
+  bitti: 'green',
+  taslak: 'orange',
+  iptal: 'red',
+};
+
 
 const PAYMENT_LABELS: Record<PaymentMethod, string> = {
   kart: 'Kredi Kartı',
@@ -299,15 +308,22 @@ export default function SalesPage() {
       },
     },
     {
-      title: 'İşlemler', key: 'actions', width: 120,
+      title: 'İşlemler', key: 'actions', width: 110,
       render: (_: unknown, record: Sale) => (
-        <Space size={4}>
-          <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => setDetailSale(record)} />
-          <Button type="text" size="small" icon={<PrinterOutlined />} onClick={() => setDetailSale(record)} />
-          <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => setDeleteTarget(record)} />
+        <Space size={8}>
+          <Tooltip title="Detay Gör" placement="top">
+            <Button type="text" icon={<EyeOutlined style={{ fontSize: 16 }} />} onClick={() => setDetailSale(record)} />
+          </Tooltip>
+          {record.durum === 'taslak' && (
+            <Tooltip title="Sil" placement="top">
+              <Button type="text" danger icon={<DeleteOutlined style={{ fontSize: 16 }} />} onClick={() => setDeleteTarget(record)} />
+            </Tooltip>
+          )}
         </Space>
       ),
     },
+
+
   ];
 
   const cartTableColumns = [
@@ -373,10 +389,10 @@ export default function SalesPage() {
           </div>
 
           <div className="sales-page__filter-row">
-            {(['all', 'bitti', 'beklemede', 'taslak', 'iptal'] as const).map((f) => (
+            {(['all', 'bitti', 'taslak', 'iptal'] as const).map((f) => (
               <Tag
                 key={f}
-                color={statusFilter === f ? 'red' : 'default'}
+                color={statusFilter === f ? (FILTER_TAG_COLORS[f] || 'blue') : 'default'}
                 style={{ cursor: 'pointer', padding: '4px 12px', fontSize: 13 }}
                 onClick={() => setStatusFilter(f)}
               >
@@ -384,6 +400,7 @@ export default function SalesPage() {
               </Tag>
             ))}
           </div>
+
 
           {state === 'loading' && (
             <div style={{ background: '#fff', borderRadius: 14, padding: 24 }}>
@@ -455,19 +472,39 @@ export default function SalesPage() {
                 size="small"
               />
 
-              <div style={{ marginTop: 16, padding: 16, background: '#F8FAFC', borderRadius: 10 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 18, fontWeight: 700, color: '#E32727' }}>
-                  <span>Toplam Tutar</span>
-                  <span>₺{detailSale.toplamTutar.toLocaleString('tr-TR')}</span>
-                </div>
-              </div>
+              {(() => {
+                const subtotal = detailSale.items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
+                const discountTotal = detailSale.items.reduce((sum, i) => sum + i.discountAmount, 0);
+                const taxable = subtotal - discountTotal;
+                const taxAmount = taxable * 0.2;
+                const grandTotal = detailSale.toplamTutar;
 
-              {detailSale.durum === 'beklemede' && (
-                <div style={{ marginTop: 16, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                  <Button onClick={() => handleUpdateStatus(detailSale.id, 'bitti')}>Tamamlandı Olarak İşaretle</Button>
-                  <Button danger onClick={() => handleUpdateStatus(detailSale.id, 'iptal')}>İptal Et</Button>
-                </div>
-              )}
+                return (
+                  <div style={{ marginTop: 16, padding: 16, background: '#F8FAFC', borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontSize: 13 }}>
+                      <span>Ara Toplam</span>
+                      <span>₺{subtotal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                    {discountTotal > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#E32727', fontSize: 13 }}>
+                        <span>İskonto / İndirim</span>
+                        <span>-₺{discountTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontSize: 13 }}>
+                      <span>KDV (%20)</span>
+                      <span>₺{taxAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                    <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: 8, marginTop: 4, display: 'flex', justifyContent: 'space-between', fontSize: 17, fontWeight: 700, color: '#E32727' }}>
+                      <span>Genel Toplam</span>
+                      <span>₺{grandTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+
+
               {detailSale.durum === 'taslak' && (
                 <div style={{ marginTop: 16, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                   <Button type="primary" danger onClick={() => handleUpdateStatus(detailSale.id, 'bitti')}>Satışı Tamamla</Button>

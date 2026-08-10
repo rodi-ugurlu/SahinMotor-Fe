@@ -93,6 +93,18 @@
   justify-content: center;
   gap: 8px;
   flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.dashboard-layout__sider-bottom:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.dashboard-layout__sider-bottom:hover .dashboard-layout__switch-label,
+.dashboard-layout__sider-bottom:hover .ant-btn {
+  color: #ffffff !important;
 }
 
 .dashboard-layout__switch-label {
@@ -100,7 +112,9 @@
   font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
+  transition: color 0.2s ease;
 }
+
 
 .dashboard-layout__header {
   background: #fff !important;

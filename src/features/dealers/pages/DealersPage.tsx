@@ -14,9 +14,11 @@ import {
   Space,
   Table,
   Tag,
+  Tooltip,
   Typography,
   Upload,
 } from 'antd';
+
 import {
   DeleteOutlined,
   EditOutlined,
@@ -67,7 +69,8 @@ export default function DealersPage() {
 
   const openEdit = (dealer: Dealer) => {
     setEditingDealer(dealer);
-    form.setFieldsValue({ name: dealer.name, description: dealer.description });
+    form.setFieldsValue({ name: dealer.name });
+
     if (dealer.logoUrl) {
       setLogoFileList([{ uid: '-1', name: 'logo.png', status: 'done', url: dealer.logoUrl }]);
     } else {
@@ -173,17 +176,24 @@ export default function DealersPage() {
       ),
     },
     {
-      title: '',
+      title: 'İşlemler',
       key: 'actions',
-      width: 100,
+      width: 110,
       render: (_: unknown, record: Dealer) => (
-        <Space size={4}>
-          <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => setDetailDealer(record)} />
-          <Button type="text" size="small" icon={<EditOutlined />} onClick={() => openEdit(record)} />
-          <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => setDeleteTarget(record)} />
+        <Space size={8}>
+          <Tooltip title="Detay Gör" placement="top">
+            <Button type="text" icon={<EyeOutlined style={{ fontSize: 16 }} />} onClick={() => setDetailDealer(record)} />
+          </Tooltip>
+          <Tooltip title="Düzenle" placement="top">
+            <Button type="text" icon={<EditOutlined style={{ fontSize: 16 }} />} onClick={() => openEdit(record)} />
+          </Tooltip>
+          <Tooltip title="Sil" placement="top">
+            <Button type="text" danger icon={<DeleteOutlined style={{ fontSize: 16 }} />} onClick={() => setDeleteTarget(record)} />
+          </Tooltip>
         </Space>
       ),
     },
+
   ];
 
   return (
@@ -260,9 +270,7 @@ export default function DealersPage() {
           <Form.Item name="name" label="Bayi Adı" rules={[{ required: true, message: 'Bayi adı gerekli' }]}>
             <Input placeholder="Bayi adı" size="large" />
           </Form.Item>
-          <Form.Item name="description" label="Açıklama" rules={[{ required: true, message: 'Açıklama gerekli' }]}>
-            <Input.TextArea rows={2} placeholder="Bayi açıklaması" maxLength={200} showCount />
-          </Form.Item>
+
           <Form.Item label="Logo">
             <Upload
               listType="picture-card"
@@ -304,19 +312,17 @@ export default function DealersPage() {
           <>
             <Descriptions bordered column={1} size="small" style={{ marginBottom: 24 }}>
               <Descriptions.Item label="Bayi Adı">{detailDealer.name}</Descriptions.Item>
-              <Descriptions.Item label="Açıklama">{detailDealer.description}</Descriptions.Item>
-              <Descriptions.Item label="Logo">
-                {detailDealer.logoUrl ? (
+              {detailDealer.logoUrl && (
+                <Descriptions.Item label="Logo">
                   <img src={detailDealer.logoUrl} alt={detailDealer.name} style={{ width: 60, height: 60, borderRadius: 8, objectFit: 'cover' }} />
-                ) : (
-                  <Text type="secondary">Logo eklenmemiş</Text>
-                )}
-              </Descriptions.Item>
+                </Descriptions.Item>
+              )}
               <Descriptions.Item label="Kayıt Tarihi">{detailDealer.createdAt}</Descriptions.Item>
               <Descriptions.Item label="Kullanıcı Sayısı">
                 <Badge count={detailDealer.assignedUserIds.length} color="#E32727" showZero />
               </Descriptions.Item>
             </Descriptions>
+
 
             <div className="dealers-page__assign-section">
               <Title level={5} style={{ marginBottom: 16 }}>
