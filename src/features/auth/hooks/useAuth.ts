@@ -77,10 +77,10 @@ export function useAuth(): UseAuthReturn {
     setError(null);
     try {
       const notice = await requestPasswordReset(email);
-      message.success(notice);
+      message.info(notice);
       return notice;
     } catch (err) {
-      const messageText = err instanceof Error ? err.message : 'Şifre sıfırlama bağlantısı gönderilemedi';
+      const messageText = err instanceof Error ? err.message : 'Şifre sıfırlama talebi başarısız oldu';
       setError(messageText);
       message.error(messageText);
       return null;

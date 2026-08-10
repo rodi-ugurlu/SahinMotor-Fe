@@ -61,10 +61,10 @@ export async function registerKoman(data: {
   });
 }
 
-export async function requestPasswordReset(email: string): Promise<string> {
+export async function requestPasswordReset(_email: string): Promise<string> {
   return new Promise((resolve) => {
     setTimeout(() => {
-      resolve(`${email} adresine şifre sıfırlama bağlantısı gönderildi.`);
-    }, 800);
+      resolve('Bu maille kayıtlı bir hesabınız varsa geçici şifreniz gönderilmiştir.');
+    }, 500);
   });
 }

@@ -61,6 +61,7 @@ The auth service ([`authService.ts`](file:///home/just-z/Desktop/SahinMotor-Fe/s
   - Logging in with role `'sahin'` returns user `{ name: 'Test Müşteri', role: 'sahin' }`.
   - Logging in with role `'koman'` returns user `{ name: 'Test Bayi', role: 'koman' }`.
   - On successful login, user is routed to `/select-business`.
+  - **Şifremi Unuttum (Forgot Password)**: Clicking the link on the login page validates the email input inline without navigating away. If invalid, displays `"Geçici şifrenizi gönderebilmemiz için mail adresinizi giriniz."`. If valid, triggers temporary password request and displays `"Bu maille kayıtlı bir hesabınız varsa geçici şifreniz gönderilmiştir."`.
 
 ---
 
