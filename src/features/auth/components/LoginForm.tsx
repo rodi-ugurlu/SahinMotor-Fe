@@ -37,11 +37,12 @@ export function LoginForm({ form, onFinish, onForgotPassword, isLoading }: Login
       form.setFields([
         {
           name: 'email',
-          errors: [warningMsg],
+          errors: [],
         },
       ]);
       return;
     }
+
 
     setIsForgotLoading(true);
     setInfoState(null);
