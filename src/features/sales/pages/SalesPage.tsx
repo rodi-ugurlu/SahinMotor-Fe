@@ -538,14 +538,14 @@ export default function SalesPage() {
             <Button onClick={() => setFlowStep('customer')} style={{ borderRadius: 10 }}>
               ← Geri Dön
             </Button>
-            <h1>Proforma Fatura</h1>
+            <h1>Fatura Önizleme</h1>
             <div />
           </div>
 
           <div className="sales-page__proforma">
             <div className="sales-page__proforma-header">
               <div className="sales-page__proforma-header-left">
-                <h2>PROFORMA</h2>
+                <h2>FATURA ÖNİZLEME</h2>
                 <span>{previewSale.createdAt}</span>
               </div>
               <div className="sales-page__proforma-header-right">
@@ -741,7 +741,7 @@ export default function SalesPage() {
             onClick={handleCustomerNext}
             style={{ borderRadius: 12, height: 48, fontSize: 15, fontWeight: 600, marginTop: 4 }}
           >
-            Proforma Önizleme
+            Fatura Önizleme
           </Button>
         </div>
       </div>
