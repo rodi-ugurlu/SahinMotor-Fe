@@ -149,13 +149,13 @@ export default function TransactionsPage() {
       title: 'Zaman',
       dataIndex: 'date',
       key: 'date',
-      width: 160,
+      width: 185,
       sorter: (a: LogEntry, b: LogEntry) => a.date.localeCompare(b.date),
       defaultSortOrder: 'descend' as const,
       render: (date: string) => (
         <div className="transactions-page__log-time-cell">
           <ClockCircleOutlined style={{ color: '#94A3B8', fontSize: 12 }} />
-          <Text className="transactions-page__log-date">{date}</Text>
+          <Text className="transactions-page__log-date" style={{ whiteSpace: 'nowrap' }}>{date}</Text>
         </div>
       ),
     },

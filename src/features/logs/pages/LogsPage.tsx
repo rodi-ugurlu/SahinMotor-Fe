@@ -46,10 +46,10 @@ export default function LogsPage() {
       title: 'Tarih',
       dataIndex: 'date',
       key: 'date',
-      width: 160,
+      width: 185,
       sorter: (a: LogEntry, b: LogEntry) => a.date.localeCompare(b.date),
       defaultSortOrder: 'descend' as const,
-      render: (date: string) => <Text className="logs-page__log-date">{date}</Text>,
+      render: (date: string) => <Text className="logs-page__log-date" style={{ whiteSpace: 'nowrap' }}>{date}</Text>,
     },
     {
       title: 'Kullanıcı',
