@@ -44,9 +44,10 @@ export function useLogs(): UseLogsReturn {
   }, [fetch]);
 
   const filteredLogs = useMemo(() => {
-    let result = logs;
+    let result = logs.filter((l) => l.type !== 'login' && l.type !== 'logout');
 
     if (userFilter !== 'all') {
+
       result = result.filter((l) => l.user.id === userFilter);
     }
 

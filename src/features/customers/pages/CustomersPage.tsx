@@ -11,9 +11,9 @@ import {
   Skeleton,
   Space,
   Table,
-  Tag,
   Tooltip,
   Typography,
+
 
 } from 'antd';
 import {
@@ -86,7 +86,7 @@ export default function CustomersPage() {
     {
       title: 'Müşteri',
       key: 'customer',
-      width: 220,
+      width: 170,
       render: (_: unknown, record: Customer) => (
         <div className="customers-page__customer-cell">
           <Text className="customers-page__customer-name">{record.fullName}</Text>
@@ -98,27 +98,14 @@ export default function CustomersPage() {
       title: 'TC',
       dataIndex: 'tc',
       key: 'tc',
-      width: 130,
+      width: 110,
       render: (v: string) => <Text>{v}</Text>,
-    },
-    {
-      title: 'VKN',
-      dataIndex: 'vkn',
-      key: 'vkn',
-      width: 120,
-      render: (v: string) => <Text>{v}</Text>,
-    },
-    {
-      title: 'Vergi Dairesi',
-      dataIndex: 'taxOffice',
-      key: 'taxOffice',
-      width: 140,
-      render: (v: string) => <Tag>{v}</Tag>,
     },
     {
       title: 'Fatura Adresi',
       dataIndex: 'billingAddress',
       key: 'billingAddress',
+      width: 140,
       ellipsis: true,
       render: (v: string) => <Text style={{ fontSize: 13 }}>{v}</Text>,
     },
@@ -126,7 +113,7 @@ export default function CustomersPage() {
       title: 'E-posta',
       dataIndex: 'email',
       key: 'email',
-      width: 170,
+      width: 140,
       ellipsis: true,
       render: (v: string) => <Text>{v}</Text>,
     },
@@ -134,14 +121,14 @@ export default function CustomersPage() {
       title: 'Kayıt Tarihi',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      width: 110,
+      width: 100,
     },
     {
       title: 'İşlemler',
       key: 'actions',
-      width: 110,
+      width: 90,
       render: (_: unknown, record: Customer) => (
-        <Space size={8}>
+        <Space size={6}>
           <Tooltip title="Detay Gör" placement="top">
             <Button type="text" icon={<EyeOutlined style={{ fontSize: 16 }} />} onClick={() => setDetailCustomer(record)} />
           </Tooltip>
@@ -154,7 +141,6 @@ export default function CustomersPage() {
         </Space>
       ),
     },
-
   ];
 
   return (
@@ -212,7 +198,7 @@ export default function CustomersPage() {
           pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (_t, range) => `Bu sayfada ${range[0]}-${range[1]} gösteriliyor` }}
           style={{ background: '#fff', borderRadius: 12 }}
           locale={{ emptyText: 'Aramanızla eşleşen müşteri bulunamadı' }}
-          scroll={{ x: 1100 }}
+          scroll={{ x: 600 }}
         />
       )}
 

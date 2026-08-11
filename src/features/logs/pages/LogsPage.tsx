@@ -181,9 +181,8 @@ export default function LogsPage() {
             { value: 'all', label: 'Tüm İşlemler' },
             { value: 'sales', label: 'Satış' },
             { value: 'stock', label: 'Stok' },
-            { value: 'login', label: 'Giriş' },
-            { value: 'logout', label: 'Çıkış' },
           ]}
+
         />
         <Input
           prefix={<SearchOutlined />}

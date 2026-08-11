@@ -102,8 +102,9 @@ export function useTransactions(): UseTransactionsReturn {
   }, [fetch]);
 
   const filteredLogs = useMemo(() => {
-    let result = logs;
+    let result = logs.filter((l) => l.type !== 'login' && l.type !== 'logout');
     if (logTypeFilter !== 'all') {
+
       result = result.filter((l) => l.type === logTypeFilter);
     }
     if (logRoleFilter !== 'all') {

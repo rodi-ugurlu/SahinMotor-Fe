@@ -24,9 +24,8 @@ import {
   CreditCardOutlined,
   DownloadOutlined,
   EyeOutlined,
-  FilePdfOutlined,
-  FileTextOutlined,
   FilterOutlined,
+
   InboxOutlined,
   InfoCircleOutlined,
   MoneyCollectOutlined,
@@ -40,7 +39,8 @@ import {
 } from '@ant-design/icons';
 
 import { useTransactions } from '../hooks/useTransactions';
-import type { DailyReport, MonthlyReport, ProductReport, ReportPeriod, WeeklyReport } from '../../reports/types/reports';
+import type { ProductReport, ReportPeriod } from '../../reports/types/reports';
+
 import type { LogEntry, LogType } from '../../logs/types/logs';
 import './TransactionsPage.css';
 
@@ -208,21 +208,18 @@ export default function TransactionsPage() {
     {
       title: 'İşlem Açıklaması',
       key: 'description',
-      render: (_: unknown, record: LogEntry) => (
-        <div className="transactions-page__log-desc">
-          <Text className="transactions-page__log-desc-main">{record.description}</Text>
-          {record.detail && <Text className="transactions-page__log-desc-detail">{record.detail}</Text>}
-          {record.changes && record.changes.length > 0 && (
-            <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {record.changes.map((c, i) => (
-                <Text key={i} type="secondary" style={{ fontSize: 12 }}>
-                  • <strong>{c.field}:</strong> <span style={{ textDecoration: 'line-through', opacity: 0.7 }}>{c.oldValue}</span> ➔ <strong style={{ color: '#22C55E' }}>{c.newValue}</strong>
-                </Text>
-              ))}
-            </div>
-          )}
-        </div>
-      ),
+      render: (_: unknown, record: LogEntry) => {
+        const detailText = record.changes && record.changes.length > 0
+          ? record.changes.map((c) => `${c.field}: ${c.oldValue} ➔ ${c.newValue}`).join(', ')
+          : record.detail;
+
+        return (
+          <div className="transactions-page__log-desc">
+            <Text className="transactions-page__log-desc-main">{record.description}</Text>
+            {detailText && <Text className="transactions-page__log-desc-detail">{detailText}</Text>}
+          </div>
+        );
+      },
     },
 
   ];
@@ -462,123 +459,68 @@ export default function TransactionsPage() {
 
           {/* 📈 Content Grid: Charts & Sales Tables */}
           <div className="transactions-page__content-grid">
-            {/* Left Box: Sales Records Table */}
+            {/* Left Box: Top Selling Products Table */}
             <div className="transactions-page__section">
               <div className="transactions-page__section-header">
                 <div className="transactions-page__section-title">
-                  <div className="transactions-page__section-title-icon" style={{ background: '#FFF5F5', color: '#E32727' }}>
-                    <FileTextOutlined />
+                  <div className="transactions-page__section-title-icon" style={{ background: '#FEF3C7', color: '#D97706' }}>
+                    <BarChartOutlined />
                   </div>
                   <div>
-                    <span>{period === 'daily' ? 'Son İşlemler & Faturalar' : period === 'weekly' ? 'Haftalık Satış Dökümü' : 'Aylık Satış Özetleri'}</span>
-                    <div className="transactions-page__section-subtitle">Detaylarını görmek için satıra tıklayın</div>
+                    <span>En Çok Satan 5 Ürün</span>
+                    <div className="transactions-page__section-subtitle">Satış hacmine göre sıralanmıştır</div>
                   </div>
                 </div>
               </div>
 
-              {period === 'daily' && (
-                <Table<DailyReport>
-                  columns={[
-                    { title: 'Tarih', dataIndex: 'date', key: 'date', width: 100 },
-                    {
-                      title: 'Fatura No',
-                      dataIndex: 'invoiceNo',
-                      key: 'invoiceNo',
-                      width: 140,
-                      render: (val: string) => (
-                        <span className="transactions-page__invoice-link">
-                          <FilePdfOutlined style={{ marginRight: 4 }} />
-                          {val}
-                        </span>
-                      ),
+              <Table<ProductReport>
+                columns={[
+                  {
+                    title: 'Sıra',
+                    dataIndex: 'rank',
+                    key: 'rank',
+                    width: 60,
+                    align: 'center' as const,
+                    render: (rank: number) => {
+                      const medalColors: Record<number, string> = { 1: '#FFD700', 2: '#C0C0C0', 3: '#CD7F32' };
+                      return rank <= 3 ? (
+                        <Tag color={medalColors[rank]} style={{ color: '#0F172A', fontWeight: 700, borderRadius: 12, padding: '0 6px' }}>
+                          #{rank}
+                        </Tag>
+                      ) : (
+                        <Text type="secondary">#{rank}</Text>
+                      );
                     },
-                    { title: 'Müşteri', dataIndex: 'customer', key: 'customer', ellipsis: true },
-                    { title: 'Adet', dataIndex: 'itemCount', key: 'itemCount', width: 60, align: 'center' as const },
-                    {
-                      title: 'Toplam Tutar',
-                      dataIndex: 'total',
-                      key: 'total',
-                      width: 120,
-                      align: 'right' as const,
-                      render: (v: number) => <Text strong style={{ color: '#1E293B' }}>₺{v.toLocaleString('tr-TR')}</Text>,
-                    },
-                  ]}
-                  dataSource={daily}
-                  rowKey="invoiceNo"
-                  onRow={(record) => ({
-                    onClick: () => openInvoiceModal(record),
-                    style: { cursor: 'pointer' },
-                  })}
-                  pagination={{ pageSize: 6, showSizeChanger: false }}
-                  size="middle"
-                  className="transactions-page__interactive-table"
-                />
-              )}
-
-              {period === 'weekly' && (
-                <Table<WeeklyReport>
-                  columns={[
-                    { title: 'Hafta', dataIndex: 'week', key: 'week', width: 110 },
-                    { title: 'Satış Adedi', dataIndex: 'totalSales', key: 'totalSales', width: 100, align: 'center' as const },
-                    {
-                      title: 'Ort. Basket',
-                      dataIndex: 'avgRevenue',
-                      key: 'avgRevenue',
-                      width: 110,
-                      align: 'right' as const,
-                      render: (v: number) => `₺${v.toLocaleString('tr-TR')}`,
-                    },
-                    {
-                      title: 'Toplam Ciro',
-                      dataIndex: 'totalRevenue',
-                      key: 'totalRevenue',
-                      width: 130,
-                      align: 'right' as const,
-                      render: (v: number) => <Text strong style={{ color: '#1E293B' }}>₺{v.toLocaleString('tr-TR')}</Text>,
-                    },
-                  ]}
-                  dataSource={weekly}
-                  rowKey="week"
-                  pagination={false}
-                  size="middle"
-                />
-              )}
-
-              {period === 'monthly' && (
-                <Table<MonthlyReport>
-                  columns={[
-                    { title: 'Ay', dataIndex: 'month', key: 'month', width: 100 },
-                    { title: 'Satış Adedi', dataIndex: 'totalSales', key: 'totalSales', width: 90, align: 'center' as const },
-                    {
-                      title: 'Ciro',
-                      dataIndex: 'totalRevenue',
-                      key: 'totalRevenue',
-                      width: 130,
-                      align: 'right' as const,
-                      render: (v: number) => <Text strong>₺{v.toLocaleString('tr-TR')}</Text>,
-                    },
-                    {
-                      title: 'Büyüme',
-                      dataIndex: 'growth',
-                      key: 'growth',
-                      width: 100,
-                      align: 'center' as const,
-                      render: (v: number) =>
-                        v === 0 ? (
-                          <Tag style={{ borderRadius: 4 }}>—</Tag>
-                        ) : (
-                          <Tag color={v > 0 ? 'success' : 'error'} style={{ borderRadius: 4, fontWeight: 600 }}>
-                            {v > 0 ? '+' : ''}{v}%
-                          </Tag>
-                        ),
-                    },
-                  ]}
-                  dataSource={monthly}
-                  rowKey="month"
-                  pagination={false}
-                  size="middle"
-                />
-              )}
+                  },
+                  {
+                    title: 'Ürün Adı',
+                    dataIndex: 'productName',
+                    key: 'productName',
+                    ellipsis: true,
+                    render: (name: string) => <Text strong style={{ color: '#1E293B' }}>{name}</Text>,
+                  },
+                  {
+                    title: 'Satış Adedi',
+                    dataIndex: 'salesCount',
+                    key: 'salesCount',
+                    width: 100,
+                    align: 'center' as const,
+                    render: (count: number) => <Tag color="cyan">{count} Adet</Tag>,
+                  },
+                  {
+                    title: 'Toplam Ciro',
+                    dataIndex: 'totalRevenue',
+                    key: 'totalRevenue',
+                    width: 120,
+                    align: 'right' as const,
+                    render: (rev: number) => <Text strong style={{ color: '#22C55E' }}>₺{rev.toLocaleString('tr-TR')}</Text>,
+                  },
+                ]}
+                dataSource={products.slice(0, 5)}
+                rowKey="rank"
+                pagination={false}
+                size="middle"
+              />
             </div>
 
             {/* Right Box: Interactive Visual Chart Engine */}
@@ -689,7 +631,6 @@ export default function TransactionsPage() {
                 </div>
               )}
 
-
               {period === 'monthly' && (
                 <div className="transactions-page__monthly-trend-grid">
                   {monthly.slice(0, 8).map((m) => {
@@ -712,88 +653,6 @@ export default function TransactionsPage() {
                   })}
                 </div>
               )}
-            </div>
-
-            {/* Bottom Row: Top Selling Products Table */}
-            <div className="transactions-page__section transactions-page__section--full">
-              <div className="transactions-page__section-header">
-                <div className="transactions-page__section-title">
-                  <div className="transactions-page__section-title-icon" style={{ background: '#FEF3C7', color: '#D97706' }}>
-                    <BarChartOutlined />
-                  </div>
-                  <div>
-                    <span>En Çok Satan 5 Ürün</span>
-
-                    <div className="transactions-page__section-subtitle">Satış hacmine ve toplam ciro payına göre sıralanmıştır</div>
-                  </div>
-                </div>
-              </div>
-
-              <Table<ProductReport>
-                columns={[
-                  {
-                    title: 'Sıra',
-                    dataIndex: 'rank',
-                    key: 'rank',
-                    width: 70,
-                    align: 'center' as const,
-                    render: (rank: number) => {
-                      const medalColors: Record<number, string> = { 1: '#FFD700', 2: '#C0C0C0', 3: '#CD7F32' };
-                      return rank <= 3 ? (
-                        <Tag color={medalColors[rank]} style={{ color: '#0F172A', fontWeight: 700, borderRadius: 12, padding: '0 8px' }}>
-                          #{rank}
-                        </Tag>
-                      ) : (
-                        <Text type="secondary">#{rank}</Text>
-                      );
-                    },
-                  },
-                  {
-                    title: 'Ürün Adı',
-                    dataIndex: 'productName',
-                    key: 'productName',
-                    render: (name: string) => <Text strong style={{ color: '#1E293B' }}>{name}</Text>,
-                  },
-                  {
-                    title: 'Kategori',
-                    dataIndex: 'category',
-                    key: 'category',
-                    width: 140,
-                    render: (cat: string) => <Tag color="blue" style={{ borderRadius: 4 }}>{cat}</Tag>,
-                  },
-                  {
-                    title: 'Satış Adedi',
-                    dataIndex: 'salesCount',
-                    key: 'salesCount',
-                    width: 110,
-                    align: 'center' as const,
-                    render: (count: number) => <Tag color="cyan">{count} Adet</Tag>,
-                  },
-                  {
-                    title: 'Toplam Ciro',
-                    dataIndex: 'totalRevenue',
-                    key: 'totalRevenue',
-                    width: 150,
-                    align: 'right' as const,
-                    render: (rev: number) => <Text strong style={{ color: '#22C55E' }}>₺{rev.toLocaleString('tr-TR')}</Text>,
-                  },
-                  {
-                    title: 'Ciro Payı %',
-                    dataIndex: 'revenuePercent',
-                    key: 'revenuePercent',
-                    width: 200,
-                    render: (percent: number) => (
-                      <div className="transactions-page__progress-wrap">
-                        <Progress percent={percent} strokeColor={{ '0%': '#E32727', '100%': '#F97316' }} size="small" />
-                      </div>
-                    ),
-                  },
-                ]}
-                dataSource={products.slice(0, 5)}
-                rowKey="rank"
-                pagination={false}
-                size="middle"
-              />
             </div>
           </div>
         </>
