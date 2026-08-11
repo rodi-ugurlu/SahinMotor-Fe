@@ -102,12 +102,11 @@ export default function CustomersPage() {
       render: (v: string) => <Text>{v}</Text>,
     },
     {
-      title: 'Fatura Adresi',
-      dataIndex: 'billingAddress',
-      key: 'billingAddress',
-      width: 140,
-      ellipsis: true,
-      render: (v: string) => <Text style={{ fontSize: 13 }}>{v}</Text>,
+      title: 'VKN',
+      dataIndex: 'vkn',
+      key: 'vkn',
+      width: 110,
+      render: (v: string) => <Text>{v}</Text>,
     },
     {
       title: 'E-posta',
