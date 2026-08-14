@@ -332,13 +332,13 @@ export default function SalesPage() {
     { title: 'Ürün', dataIndex: 'productName', key: 'productName', ellipsis: true },
     { title: 'Birim Fiyat', dataIndex: 'unitPrice', key: 'unitPrice', width: 90, render: (v: number) => `₺${v}` },
     {
-      title: 'Adet', key: 'quantity', width: 80,
+      title: 'Adet', key: 'quantity', width: 110,
       render: (_: unknown, _record: SaleItem, index: number) => (
-        <InputNumber min={1} value={cartItems[index].quantity} onChange={(v) => updateCartItem(index, { quantity: v ?? 1 })} style={{ width: 80 }} />
+        <InputNumber min={1} value={cartItems[index].quantity} onChange={(v) => updateCartItem(index, { quantity: v ?? 1 })} style={{ width: '100%' }} />
       ),
     },
     {
-      title: 'İskonto %', key: 'discountPercent', width: 100,
+      title: 'İskonto %', key: 'discountPercent', width: 120,
       render: (_: unknown, _record: SaleItem, index: number) => {
         const isFocused = focusedDiscountIndex === index;
         return (
@@ -350,7 +350,7 @@ export default function SalesPage() {
             onFocus={() => setFocusedDiscountIndex(index)}
             onBlur={() => setFocusedDiscountIndex(null)}
             className={`sales-page__discount-input${isFocused ? ' sales-page__discount-input--focused' : ''}`}
-            style={{ width: isFocused ? 90 : 80 }}
+            style={{ width: '100%' }}
             suffix="%"
           />
         );
