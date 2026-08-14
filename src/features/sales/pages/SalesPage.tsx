@@ -611,10 +611,6 @@ export default function SalesPage() {
                     <span className="sales-page__proforma-info-label">Müşteri</span>
                     <span className="sales-page__proforma-info-value">{previewSale.musteriAdi}</span>
                   </div>
-                  <div className="sales-page__proforma-info-block">
-                    <span className="sales-page__proforma-info-label">Telefon</span>
-                    <span className="sales-page__proforma-info-value">{previewSale.musteriTelefon}</span>
-                  </div>
                   {previewSale.musteriEmail && (
                     <div className="sales-page__proforma-info-block">
                       <span className="sales-page__proforma-info-label">E-posta</span>
@@ -623,6 +619,10 @@ export default function SalesPage() {
                   )}
                 </div>
                 <div className="sales-page__proforma-info-col">
+                  <div className="sales-page__proforma-info-block">
+                    <span className="sales-page__proforma-info-label">Telefon</span>
+                    <span className="sales-page__proforma-info-value">{previewSale.musteriTelefon}</span>
+                  </div>
                   <div className="sales-page__proforma-info-block">
                     <span className="sales-page__proforma-info-label">Ödeme Yöntemi</span>
                     <span className="sales-page__proforma-info-value">
