@@ -45,7 +45,7 @@ export function PasswordModal({ open, onCancel, onSave }: PasswordModalProps) {
           label="Yeni Parola"
           rules={[
             { required: true, message: 'Yeni parola gerekli' },
-            { min: 6, message: 'En az 6 karakter olmalı' },
+            { min: 10, message: 'En az 10 karakter olmalı' },
           ]}
         >
           <Input.Password placeholder="Yeni parola" size="large" />

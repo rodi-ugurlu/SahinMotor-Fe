@@ -74,7 +74,7 @@ export default function ReportsPage() {
           <Table<DailyReport>
             columns={[
               { title: 'Tarih', dataIndex: 'date', key: 'date', width: 120 },
-              { title: 'Fatura No', dataIndex: 'invoiceNo', key: 'invoiceNo', width: 140 },
+              { title: 'Satış No', dataIndex: 'invoiceNo', key: 'invoiceNo', width: 140 },
               { title: 'Müşteri', dataIndex: 'customer', key: 'customer' },
               { title: 'Ürün Adedi', dataIndex: 'itemCount', key: 'itemCount', width: 100, align: 'center' as const },
               { title: 'Toplam Tutar', dataIndex: 'total', key: 'total', width: 130, render: (v: number) => <Text strong>₺{v.toLocaleString('tr-TR')}</Text> },

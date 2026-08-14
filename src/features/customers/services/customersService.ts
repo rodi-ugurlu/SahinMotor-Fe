@@ -2,33 +2,33 @@ import type { Customer } from '../types/customers';
 
 const MOCK_CUSTOMERS: Customer[] = [
   {
-    id: 'c1', fullName: 'Ahmet Yılmaz', tc: '12345678901', vkn: '1234567890',
-    taxOffice: 'Kadıköy', billingAddress: 'Caferağa Mah. Moda Cad. No:12 Kadıköy/İstanbul',
+    id: 'c1', fullName: 'Ahmet Yılmaz', type: 'individual', tc: '12345678901',
+    billingAddress: 'Caferağa Mah. Moda Cad. No:12 Kadıköy/İstanbul',
     phone: '0532 123 45 67', email: 'ahmet@mail.com', createdAt: '15.01.2026',
   },
   {
-    id: 'c2', fullName: 'Mehmet Kaya', tc: '23456789012', vkn: '2345678901',
-    taxOffice: 'Beşiktaş', billingAddress: 'Sinanpaşa Mah. Barbaros Bulvarı No:45 Beşiktaş/İstanbul',
+    id: 'c2', fullName: 'Mehmet Kaya', type: 'individual', tc: '23456789012',
+    billingAddress: 'Sinanpaşa Mah. Barbaros Bulvarı No:45 Beşiktaş/İstanbul',
     phone: '0533 987 65 43', email: 'mehmet@mail.com', createdAt: '22.02.2026',
   },
   {
-    id: 'c3', fullName: 'Ayşe Demir', tc: '34567890123', vkn: '3456789012',
-    taxOffice: 'Çankaya', billingAddress: 'Kızılay Mah. Atatürk Bulvarı No:88 Çankaya/Ankara',
+    id: 'c3', fullName: 'Ayşe Demir', type: 'individual', tc: '34567890123',
+    billingAddress: 'Kızılay Mah. Atatürk Bulvarı No:88 Çankaya/Ankara',
     phone: '0555 456 78 90', email: 'ayse@mail.com', createdAt: '10.03.2026',
   },
   {
-    id: 'c4', fullName: 'Ali Öztürk', tc: '45678901234', vkn: '4567890123',
-    taxOffice: 'Osmangazi', billingAddress: 'Altıparmak Mah. Cumhuriyet Cad. No:33 Osmangazi/Bursa',
+    id: 'c4', fullName: 'Öztürk Motor Ltd. Şti.', type: 'company', vkn: '4567890123', taxOffice: 'Osmangazi',
+    billingAddress: 'Altıparmak Mah. Cumhuriyet Cad. No:33 Osmangazi/Bursa',
     phone: '0542 111 22 33', email: 'ali@mail.com', createdAt: '05.04.2026',
   },
   {
-    id: 'c5', fullName: 'Can Yıldız', tc: '56789012345', vkn: '5678901234',
-    taxOffice: 'Konak', billingAddress: 'Alsancak Mah. Kıbrıs Şehitleri Cad. No:77 Konak/İzmir',
+    id: 'c5', fullName: 'Yıldız Ticaret A.Ş.', type: 'company', vkn: '5678901234', taxOffice: 'Konak',
+    billingAddress: 'Alsancak Mah. Kıbrıs Şehitleri Cad. No:77 Konak/İzmir',
     phone: '0530 444 55 66', email: 'can@mail.com', createdAt: '18.05.2026',
   },
   {
-    id: 'c6', fullName: 'Zeynep Şahin', tc: '67890123456', vkn: '6789012345',
-    taxOffice: 'Melikgazi', billingAddress: 'Hunat Mah. Sivas Cad. No:22 Melikgazi/Kayseri',
+    id: 'c6', fullName: 'Zeynep Şahin', type: 'individual', tc: '67890123456',
+    billingAddress: 'Hunat Mah. Sivas Cad. No:22 Melikgazi/Kayseri',
     phone: '0541 333 22 11', email: 'zeynep@mail.com', createdAt: '30.06.2026',
   },
 ];

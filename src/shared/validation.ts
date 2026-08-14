@@ -12,7 +12,7 @@ export function formatPhoneNumber(value: string): string {
 
 export function validatePasswordRule(_: unknown, value: string): Promise<void> {
   if (!value) return Promise.resolve();
-  if (value.length < 6) return Promise.reject(new Error('Şifre en az 6 karakter olmalıdır'));
+  if (value.length < 10) return Promise.reject(new Error('Şifre en az 10 karakter olmalıdır'));
   if (!/[A-Z]/.test(value)) return Promise.reject(new Error('Şifre en az bir büyük harf içermelidir'));
   if (!/[a-z]/.test(value)) return Promise.reject(new Error('Şifre en az bir küçük harf içermelidir'));
   if (!/\d/.test(value)) return Promise.reject(new Error('Şifre en az bir rakam içermelidir'));

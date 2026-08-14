@@ -228,6 +228,18 @@
   background: #FFFBFA;
 }
 
+.sales-page__discount-input {
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sales-page__discount-input .ant-input-number-handler-wrap {
+  display: none;
+}
+
+.sales-page__discount-input--focused .ant-input-number-input {
+  color: #E32727;
+}
+
 /* ===== CART SIDEBAR ===== */
 .sales-page__cart-sidebar {
   background: #fff;
@@ -503,6 +515,31 @@
 }
 
 /* ===== CUSTOMER STEP ===== */
+.sales-page__customer-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 24px;
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  align-items: start;
+}
+
+.sales-page__customer-form-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sales-page__customer-sidebar {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #E2E8F0;
+  padding: 20px;
+  position: sticky;
+  top: 24px;
+}
+
 .sales-page__customer-step {
   max-width: 520px;
   margin: 0 auto;
@@ -786,7 +823,16 @@
     padding: 16px;
   }
 
+  .sales-page__customer-layout {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
   .sales-page__cart-sidebar {
+    position: static;
+  }
+
+  .sales-page__customer-sidebar {
     position: static;
   }
 

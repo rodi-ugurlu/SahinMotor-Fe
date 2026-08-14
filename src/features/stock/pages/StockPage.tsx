@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Alert,
   Badge,
   Button,
   Input,
   Modal,
+  Popover,
+  Select,
   Skeleton,
   Space,
   Table,
@@ -15,6 +17,7 @@ import {
 import {
   DeleteOutlined,
   EditOutlined,
+  FilterOutlined,
   InboxOutlined,
   PlusOutlined,
   ReloadOutlined,
@@ -30,7 +33,10 @@ const { Text } = Typography;
 export default function StockPage() {
   const {
     filteredProducts, state, search, filter,
-    setSearch, setFilter, handleAdd, handleUpdate, handleDelete, retry,
+    brandFilter, modelFilter, sizeFilter, colorFilter, products,
+    setSearch, setFilter,
+    setBrandFilter, setModelFilter, setSizeFilter, setColorFilter,
+    handleAdd, handleUpdate, handleDelete, retry,
   } = useStock();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -39,6 +45,29 @@ export default function StockPage() {
   const [hoveredImage, setHoveredImage] = useState<string | null>(null);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
   const [formKey, setFormKey] = useState(0);
+  const [filterOpen, setFilterOpen] = useState(false);
+
+  const brandOptions = useMemo(() => {
+    const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))];
+    return brands.map((b) => ({ value: b, label: b }));
+  }, [products]);
+
+  const modelOptions = useMemo(() => {
+    const models = [...new Set(products.map((p) => p.model).filter(Boolean))];
+    return models.map((m) => ({ value: m, label: m }));
+  }, [products]);
+
+  const sizeOptions = useMemo(() => {
+    const sizes = [...new Set(products.map((p) => p.size).filter(Boolean))];
+    return sizes.map((s) => ({ value: s, label: s }));
+  }, [products]);
+
+  const colorOptions = useMemo(() => {
+    const colors = [...new Set(products.map((p) => p.color).filter(Boolean))];
+    return colors.map((c) => ({ value: c, label: c }));
+  }, [products]);
+
+  const activeFilterCount = [brandFilter, modelFilter, sizeFilter, colorFilter].filter(Boolean).length;
 
   const openAdd = () => {
     setEditingProduct(null);
@@ -99,6 +128,8 @@ export default function StockPage() {
       title: 'Ürün',
       key: 'product',
       width: 260,
+      sorter: (a: Product, b: Product) => a.name.localeCompare(b.name, 'tr'),
+      showSorterTooltip: { title: 'Alfabetik sırala (A-Z / Z-A)' },
       render: (_: unknown, record: Product) => (
         <div className="stock-page__product-cell">
           <div
@@ -212,7 +243,7 @@ export default function StockPage() {
           </Button>
           <Input
             prefix={<SearchOutlined />}
-            placeholder="Ürün, marka veya model ara..."
+            placeholder="Ürün adı veya barkod ile ara..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{ width: 260 }}
@@ -243,6 +274,81 @@ export default function StockPage() {
         >
           Normal
         </Tag>
+        <Popover
+          open={filterOpen}
+          onOpenChange={setFilterOpen}
+          trigger="click"
+          placement="bottomLeft"
+          content={
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 200 }}>
+              <div>
+                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4, display: 'block' }}>Marka</Text>
+                <Select
+                  value={brandFilter || undefined}
+                  onChange={(v) => setBrandFilter(v ?? '')}
+                  placeholder="Tümü"
+                  allowClear
+                  style={{ width: '100%' }}
+                  options={brandOptions}
+                />
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4, display: 'block' }}>Model</Text>
+                <Select
+                  value={modelFilter || undefined}
+                  onChange={(v) => setModelFilter(v ?? '')}
+                  placeholder="Tümü"
+                  allowClear
+                  style={{ width: '100%' }}
+                  options={modelOptions}
+                />
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4, display: 'block' }}>Beden</Text>
+                <Select
+                  value={sizeFilter || undefined}
+                  onChange={(v) => setSizeFilter(v ?? '')}
+                  placeholder="Tümü"
+                  allowClear
+                  style={{ width: '100%' }}
+                  options={sizeOptions}
+                />
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4, display: 'block' }}>Renk</Text>
+                <Select
+                  value={colorFilter || undefined}
+                  onChange={(v) => setColorFilter(v ?? '')}
+                  placeholder="Tümü"
+                  allowClear
+                  style={{ width: '100%' }}
+                  options={colorOptions}
+                />
+              </div>
+              <Button
+                size="small"
+                onClick={() => {
+                  setBrandFilter('');
+                  setModelFilter('');
+                  setSizeFilter('');
+                  setColorFilter('');
+                }}
+                style={{ borderRadius: 8 }}
+              >
+                Filtreleri Temizle
+              </Button>
+            </div>
+          }
+        >
+          <Button
+            type="primary"
+            danger
+            icon={<FilterOutlined />}
+            style={{ borderRadius: 8 }}
+          >
+            Filtrele{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+          </Button>
+        </Popover>
       </div>
 
       {state === 'loading' && (
