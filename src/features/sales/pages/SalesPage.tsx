@@ -334,7 +334,7 @@ export default function SalesPage() {
     {
       title: 'Adet', key: 'quantity', width: 80,
       render: (_: unknown, _record: SaleItem, index: number) => (
-        <InputNumber min={1} value={cartItems[index].quantity} onChange={(v) => updateCartItem(index, { quantity: v ?? 1 })} style={{ width: 60 }} controls={false} />
+        <InputNumber min={1} value={cartItems[index].quantity} onChange={(v) => updateCartItem(index, { quantity: v ?? 1 })} style={{ width: 80 }} />
       ),
     },
     {
@@ -350,9 +350,8 @@ export default function SalesPage() {
             onFocus={() => setFocusedDiscountIndex(index)}
             onBlur={() => setFocusedDiscountIndex(null)}
             className={`sales-page__discount-input${isFocused ? ' sales-page__discount-input--focused' : ''}`}
-            style={{ width: isFocused ? 72 : 60 }}
+            style={{ width: isFocused ? 90 : 80 }}
             suffix="%"
-            controls={false}
           />
         );
       },
