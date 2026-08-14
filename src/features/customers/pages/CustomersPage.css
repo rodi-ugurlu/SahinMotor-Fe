@@ -27,6 +27,13 @@
   flex-wrap: wrap;
 }
 
+.customers-page__filter-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
 .customers-page__empty {
   display: flex;
   flex-direction: column;
