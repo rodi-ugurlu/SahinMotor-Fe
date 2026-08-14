@@ -9,7 +9,6 @@ import {
   Input,
   Modal,
   Radio,
-  Select,
   Skeleton,
   Space,
   Table,
@@ -188,16 +187,6 @@ export default function CustomersPage() {
           <Button type="primary" danger icon={<PlusOutlined />} onClick={openAdd}>
             Yeni Müşteri
           </Button>
-          <Select
-            value={typeFilter}
-            onChange={(v) => setTypeFilter(v)}
-            style={{ width: 140 }}
-            options={[
-              { value: 'all', label: 'Tümü' },
-              { value: 'individual', label: 'Bireysel' },
-              { value: 'company', label: 'Kurumsal' },
-            ]}
-          />
           <Input
             prefix={<SearchOutlined />}
             placeholder="İsim, telefon, TC, VKN ara..."
@@ -207,6 +196,30 @@ export default function CustomersPage() {
             allowClear
           />
         </div>
+      </div>
+
+      <div className="customers-page__filter-row">
+        <Tag
+          color={typeFilter === 'all' ? 'blue' : 'default'}
+          style={{ cursor: 'pointer', padding: '4px 12px', fontSize: 13 }}
+          onClick={() => setTypeFilter('all')}
+        >
+          Tümü
+        </Tag>
+        <Tag
+          color={typeFilter === 'individual' ? 'blue' : 'default'}
+          style={{ cursor: 'pointer', padding: '4px 12px', fontSize: 13 }}
+          onClick={() => setTypeFilter('individual')}
+        >
+          Bireysel
+        </Tag>
+        <Tag
+          color={typeFilter === 'company' ? 'blue' : 'default'}
+          style={{ cursor: 'pointer', padding: '4px 12px', fontSize: 13 }}
+          onClick={() => setTypeFilter('company')}
+        >
+          Kurumsal
+        </Tag>
       </div>
 
       {state === 'loading' && (
