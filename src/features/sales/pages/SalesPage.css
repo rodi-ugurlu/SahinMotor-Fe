@@ -617,9 +617,14 @@
 
 /* ===== PROFORMA ===== */
 .sales-page__proforma-wrap {
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 24px;
+}
+
+.sales-page__proforma-topbar,
+.sales-page__proforma {
+  width: min(100%, 960px);
 }
 
 .sales-page__proforma-topbar {
@@ -828,12 +833,21 @@
     padding: 16px;
   }
 
+  .sales-page__proforma-wrap {
+    padding: 16px;
+  }
+
   .sales-page__cart-sidebar {
     position: static;
   }
 
   .sales-page__customer-sidebar {
     position: static;
+  }
+
+  .sales-page__proforma-topbar,
+  .sales-page__proforma {
+    width: 100%;
   }
 
   .sales-page__proforma-info {
@@ -863,6 +877,10 @@
   .sales-page__workspace {
     padding: 12px;
     gap: 16px;
+  }
+
+  .sales-page__customer-layout {
+    padding: 12px;
   }
 
   .sales-page__workspace-search {
