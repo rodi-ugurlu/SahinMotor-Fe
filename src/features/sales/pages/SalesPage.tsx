@@ -1,14 +1,17 @@
 import { useState, useRef, useCallback } from 'react';
+import dayjs from 'dayjs';
 import {
   Alert,
   Badge,
   Button,
+  DatePicker,
   Descriptions,
   Drawer,
   Form,
   Input,
   InputNumber,
   Modal,
+  Popover,
   Radio,
   Select,
   Skeleton,
@@ -21,6 +24,7 @@ import {
 } from 'antd';
 
 import {
+  CalendarOutlined,
   CameraOutlined,
   CheckCircleOutlined,
   CloseOutlined,
@@ -41,6 +45,7 @@ import type { Sale, SaleItem, PaymentMethod, CustomerType } from '../types/sales
 import './SalesPage.css';
 
 const { Text } = Typography;
+const { RangePicker } = DatePicker;
 
 const STATUS_MAP: Record<string, { color: string; label: string }> = {
   bitti: { color: 'green', label: 'Tamamlandı' },
@@ -92,6 +97,7 @@ export default function SalesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Sale | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewSale, setPreviewSale] = useState<Sale | null>(null);
+  const [dateRangeOpen, setDateRangeOpen] = useState(false);
 
   const [barcodeOpen, setBarcodeOpen] = useState(false);
   const [barcodeInput, setBarcodeInput] = useState('');
@@ -400,6 +406,36 @@ export default function SalesPage() {
                 style={{ width: 260 }}
                 allowClear
               />
+              <Popover
+                open={dateRangeOpen}
+                onOpenChange={setDateRangeOpen}
+                trigger="click"
+                placement="bottomRight"
+                content={
+                  <RangePicker
+                    value={dateFrom || dateTo ? [dateFrom ? dayjs(dateFrom, 'DD.MM.YYYY') : null, dateTo ? dayjs(dateTo, 'DD.MM.YYYY') : null] : null}
+                    onChange={(dates) => {
+                      if (dates && dates[0] && dates[1]) {
+                        setDateFrom(dates[0].format('DD.MM.YYYY'));
+                        setDateTo(dates[1].format('DD.MM.YYYY'));
+                      } else {
+                        setDateFrom('');
+                        setDateTo('');
+                      }
+                    }}
+                    format="DD.MM.YYYY"
+                    placeholder={['Başlangıç', 'Bitiş']}
+                    style={{ width: 280 }}
+                  />
+                }
+              >
+                <Button
+                  icon={<CalendarOutlined />}
+                  style={{ borderRadius: 8 }}
+                  type={dateFrom || dateTo ? 'primary' : 'default'}
+                  danger={!!(dateFrom || dateTo)}
+                />
+              </Popover>
             </div>
           </div>
 
@@ -414,23 +450,6 @@ export default function SalesPage() {
                 {f === 'all' ? 'Tümü' : STATUS_MAP[f]?.label ?? f}
               </Tag>
             ))}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 8 }}>
-              <Input
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                placeholder="Başlangıç (GG.AA.YYYY)"
-                style={{ width: 200, borderRadius: 8 }}
-                allowClear
-              />
-              <Text type="secondary" style={{ fontSize: 13 }}>-</Text>
-              <Input
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                placeholder="Bitiş (GG.AA.YYYY)"
-                style={{ width: 200, borderRadius: 8 }}
-                allowClear
-              />
-            </div>
           </div>
 
 
