@@ -31,12 +31,12 @@ interface UseTransactionsReturn {
   filteredLogs: LogEntry[];
   logSearch: string;
   logTypeFilter: LogType | 'all';
-  logRoleFilter: string | 'all';
+  logUserFilter: string | 'all';
   setPeriod: (p: ReportPeriod) => void;
   setDatePreset: (preset: DatePreset) => void;
   setLogSearch: (s: string) => void;
   setLogTypeFilter: (f: LogType | 'all') => void;
-  setLogRoleFilter: (r: string | 'all') => void;
+  setLogUserFilter: (u: string | 'all') => void;
   openInvoiceModal: (sale: Sale | DailyReport) => void;
   closeInvoiceModal: () => void;
   exportToCSV: () => void;
@@ -62,7 +62,7 @@ export function useTransactions(): UseTransactionsReturn {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [logSearch, setLogSearch] = useState('');
   const [logTypeFilter, setLogTypeFilter] = useState<LogType | 'all'>('all');
-  const [logRoleFilter, setLogRoleFilter] = useState<string | 'all'>('all');
+  const [logUserFilter, setLogUserFilter] = useState<string | 'all'>('all');
 
   const fetch = useCallback(() => {
     setState('loading');
@@ -107,8 +107,8 @@ export function useTransactions(): UseTransactionsReturn {
 
       result = result.filter((l) => l.type === logTypeFilter);
     }
-    if (logRoleFilter !== 'all') {
-      result = result.filter((l) => l.user.role === logRoleFilter);
+    if (logUserFilter !== 'all') {
+      result = result.filter((l) => l.user.name === logUserFilter);
     }
     if (logSearch.trim()) {
       const q = logSearch.toLowerCase();
@@ -123,7 +123,7 @@ export function useTransactions(): UseTransactionsReturn {
       );
     }
     return result;
-  }, [logs, logSearch, logTypeFilter, logRoleFilter]);
+  }, [logs, logSearch, logTypeFilter, logUserFilter]);
 
   const openInvoiceModal = useCallback((saleOrReport: Sale | DailyReport) => {
     if ('items' in saleOrReport) {
@@ -213,12 +213,12 @@ export function useTransactions(): UseTransactionsReturn {
     filteredLogs,
     logSearch,
     logTypeFilter,
-    logRoleFilter,
+    logUserFilter,
     setPeriod,
     setDatePreset,
     setLogSearch,
     setLogTypeFilter,
-    setLogRoleFilter,
+    setLogUserFilter,
     openInvoiceModal,
     closeInvoiceModal,
     exportToCSV,

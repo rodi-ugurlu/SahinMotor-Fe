@@ -12,7 +12,7 @@ const platformSlogans = [
 ];
 
 export default function AnimatedAuthPage() {
-  const { isLoading, login, resetPassword } = useAuth();
+  const { isLoading, error, login, resetPassword, clearError } = useAuth();
   const [form] = Form.useForm();
 
   const handleForgotPassword = async (email: string) => {
@@ -33,6 +33,8 @@ export default function AnimatedAuthPage() {
               onFinish={handleLogin}
               onForgotPassword={handleForgotPassword}
               isLoading={isLoading}
+              loginError={error}
+              onClearError={clearError}
             />
           </div>
         </div>

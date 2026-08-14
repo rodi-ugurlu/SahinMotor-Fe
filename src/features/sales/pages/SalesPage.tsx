@@ -37,7 +37,7 @@ import {
   WalletOutlined,
 } from '@ant-design/icons';
 import { useSales } from '../hooks/useSales';
-import type { Sale, SaleItem, PaymentMethod } from '../types/sales';
+import type { Sale, SaleItem, PaymentMethod, CustomerType } from '../types/sales';
 import './SalesPage.css';
 
 const { Text } = Typography;
@@ -72,9 +72,9 @@ type FlowStep = 'cart' | 'customer' | 'proforma';
 
 export default function SalesPage() {
   const {
-    filteredSales, state, search, statusFilter,
+    filteredSales, state, search, statusFilter, dateFrom, dateTo,
     customers, products, cartItems, showSalesList,
-    setSearch, setStatusFilter, setShowSalesList, setCartItems,
+    setSearch, setStatusFilter, setDateFrom, setDateTo, setShowSalesList, setCartItems,
     addToCart, updateCartItem, removeCartItem,
     handleCreateSale, handleUpdateStatus, handleDeleteSale,
     retry,
@@ -85,7 +85,9 @@ export default function SalesPage() {
   const [flowStep, setFlowStep] = useState<FlowStep>('cart');
   const [customerForm] = Form.useForm();
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | undefined>(undefined);
+  const [customerType, setCustomerType] = useState<CustomerType>('individual');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('nakit');
+  const [focusedDiscountIndex, setFocusedDiscountIndex] = useState<number | null>(null);
   const [detailSale, setDetailSale] = useState<Sale | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Sale | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -105,7 +107,7 @@ export default function SalesPage() {
   const filteredProducts = products.filter((p) => {
     if (!productSearch.trim()) return false;
     const q = productSearch.toLowerCase();
-    return p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q);
+    return p.name.toLowerCase().includes(q) || p.barcode.toLowerCase().includes(q);
   });
 
   const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
@@ -125,7 +127,7 @@ export default function SalesPage() {
 
   const handleBarcodeSubmit = () => {
     if (!barcodeInput.trim()) return;
-    const product = products.find((p) => p.code === barcodeInput.trim());
+    const product = products.find((p) => p.barcode === barcodeInput.trim());
     if (product) {
       addToCart(product.id);
       showBarcodeResult(`${product.name} sepete eklendi`, true);
@@ -332,14 +334,28 @@ export default function SalesPage() {
     {
       title: 'Adet', key: 'quantity', width: 80,
       render: (_: unknown, _record: SaleItem, index: number) => (
-        <InputNumber min={1} value={cartItems[index].quantity} onChange={(v) => updateCartItem(index, { quantity: v ?? 1 })} style={{ width: 60 }} />
+        <InputNumber min={1} value={cartItems[index].quantity} onChange={(v) => updateCartItem(index, { quantity: v ?? 1 })} style={{ width: 60 }} controls={false} />
       ),
     },
     {
-      title: 'İskonto %', key: 'discountPercent', width: 90,
-      render: (_: unknown, _record: SaleItem, index: number) => (
-        <InputNumber min={0} max={100} value={cartItems[index].discountPercent} onChange={(v) => updateCartItem(index, { discountPercent: v ?? 0 })} style={{ width: 60 }} suffix="%" />
-      ),
+      title: 'İskonto %', key: 'discountPercent', width: 100,
+      render: (_: unknown, _record: SaleItem, index: number) => {
+        const isFocused = focusedDiscountIndex === index;
+        return (
+          <InputNumber
+            min={0}
+            max={100}
+            value={cartItems[index].discountPercent}
+            onChange={(v) => updateCartItem(index, { discountPercent: v ?? 0 })}
+            onFocus={() => setFocusedDiscountIndex(index)}
+            onBlur={() => setFocusedDiscountIndex(null)}
+            className={`sales-page__discount-input${isFocused ? ' sales-page__discount-input--focused' : ''}`}
+            style={{ width: isFocused ? 72 : 60 }}
+            suffix="%"
+            controls={false}
+          />
+        );
+      },
     },
     {
       title: 'Toplam', key: 'total', width: 100,
@@ -399,6 +415,23 @@ export default function SalesPage() {
                 {f === 'all' ? 'Tümü' : STATUS_MAP[f]?.label ?? f}
               </Tag>
             ))}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 8 }}>
+              <Input
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                placeholder="Başlangıç (GG.AA.YYYY)"
+                style={{ width: 200, borderRadius: 8 }}
+                allowClear
+              />
+              <Text type="secondary" style={{ fontSize: 13 }}>-</Text>
+              <Input
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                placeholder="Bitiş (GG.AA.YYYY)"
+                style={{ width: 200, borderRadius: 8 }}
+                allowClear
+              />
+            </div>
           </div>
 
 
@@ -538,7 +571,7 @@ export default function SalesPage() {
             <Button onClick={() => setFlowStep('customer')} style={{ borderRadius: 10 }}>
               ← Geri Dön
             </Button>
-            <h1>Fatura Önizleme</h1>
+            <h1>Satış Önizleme</h1>
             <div />
           </div>
 
@@ -639,110 +672,199 @@ export default function SalesPage() {
   if (flowStep === 'customer') {
     return (
       <div className="sales-page">
-        <div className="sales-page__customer-step">
-          <div className="sales-page__customer-back">
-            <Button onClick={() => setFlowStep('cart')} style={{ borderRadius: 10 }}>
-              ← Sepete Dön
+        <div className="sales-page__customer-layout">
+          <div className="sales-page__customer-form-col">
+            <div className="sales-page__customer-back">
+              <Button onClick={() => setFlowStep('cart')} style={{ borderRadius: 10 }}>
+                ← Sepete Dön
+              </Button>
+            </div>
+
+            <div className="sales-page__customer-header">
+              <div className="sales-page__customer-header-icon">
+                <UserOutlined />
+              </div>
+              <div className="sales-page__customer-header-title">Müşteri Bilgileri</div>
+              <div className="sales-page__customer-header-sub">Satışı tamamlamak için müşteri bilgilerini doldurun</div>
+            </div>
+
+            <Form form={customerForm} layout="vertical" size="large">
+              <Form.Item label="Müşteri Tipi">
+                <Radio.Group
+                  value={customerType}
+                  onChange={(e) => {
+                    setCustomerType(e.target.value);
+                    setSelectedCustomerId(undefined);
+                    customerForm.resetFields();
+                  }}
+                  style={{ display: 'flex', gap: 10, width: '100%' }}
+                >
+                  <Radio.Button value="individual" style={{ flex: 1, textAlign: 'center', height: 44, lineHeight: '44px', borderRadius: 10, fontSize: 14, fontWeight: 500 }}>
+                    Bireysel
+                  </Radio.Button>
+                  <Radio.Button value="company" style={{ flex: 1, textAlign: 'center', height: 44, lineHeight: '44px', borderRadius: 10, fontSize: 14, fontWeight: 500 }}>
+                    Kurumsal
+                  </Radio.Button>
+                </Radio.Group>
+              </Form.Item>
+
+              <Form.Item label="Mevcut Müşteri">
+                <Select
+                  showSearch
+                  allowClear
+                  placeholder="Müşteri seçin (opsiyonel)"
+                  value={selectedCustomerId}
+                  onChange={(id) => {
+                    setSelectedCustomerId(id);
+                    if (id) {
+                      const c = customers.find((x) => x.id === id);
+                      if (c) {
+                        setCustomerType(c.type);
+                        customerForm.setFieldsValue({
+                          fullName: c.fullName,
+                          phone: c.phone,
+                          email: c.email,
+                          tc: c.tc,
+                          vkn: c.vkn,
+                          taxOffice: c.taxOffice,
+                          billingAddress: c.billingAddress,
+                        });
+                      }
+                    } else {
+                      customerForm.resetFields();
+                    }
+                  }}
+                  filterOption={(input, option) => (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())}
+                  options={customers
+                    .filter((c) => c.type === customerType)
+                    .map((c) => ({ value: c.id, label: `${c.fullName} — ${c.phone}` }))}
+                />
+              </Form.Item>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+                <Form.Item
+                  name="fullName"
+                  label={customerType === 'individual' ? 'Ad Soyad' : 'Firma Adı'}
+                  rules={[{ required: !selectedCustomerId, message: customerType === 'individual' ? 'Ad soyad gerekli' : 'Firma adı gerekli' }]}
+                >
+                  <Input placeholder={customerType === 'individual' ? 'Ad Soyad' : 'Firma Adı'} disabled={!!selectedCustomerId} />
+                </Form.Item>
+                <Form.Item name="phone" label="Telefon" rules={[{ required: !selectedCustomerId, message: 'Telefon gerekli' }]}>
+                  <Input placeholder="05xx xxx xx xx" disabled={!!selectedCustomerId} />
+                </Form.Item>
+              </div>
+
+              {customerType === 'individual' && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+                  <Form.Item name="tc" label="TC Kimlik No" rules={[{ required: !selectedCustomerId, message: 'TC Kimlik No gerekli' }, { pattern: /^\d{11}$/, message: 'TC Kimlik No 11 haneli olmalıdır' }]}>
+                    <Input placeholder="12345678901" maxLength={11} disabled={!!selectedCustomerId} />
+                  </Form.Item>
+                  <Form.Item name="email" label="E-posta">
+                    <Input placeholder="E-posta (opsiyonel)" type="email" disabled={!!selectedCustomerId} />
+                  </Form.Item>
+                </div>
+              )}
+
+              {customerType === 'company' && (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+                    <Form.Item name="vkn" label="Vergi No" rules={[{ required: !selectedCustomerId, message: 'Vergi No gerekli' }, { pattern: /^\d{10}$/, message: 'Vergi No 10 haneli olmalıdır' }]}>
+                      <Input placeholder="1234567890" maxLength={10} disabled={!!selectedCustomerId} />
+                    </Form.Item>
+                    <Form.Item name="taxOffice" label="Vergi Dairesi" rules={[{ required: !selectedCustomerId, message: 'Vergi dairesi gerekli' }]}>
+                      <Input placeholder="Vergi Dairesi" disabled={!!selectedCustomerId} />
+                    </Form.Item>
+                  </div>
+                  <Form.Item name="email" label="E-posta">
+                    <Input placeholder="E-posta (opsiyonel)" type="email" disabled={!!selectedCustomerId} />
+                  </Form.Item>
+                </>
+              )}
+
+              <Form.Item name="billingAddress" label="Fatura Adresi">
+                <Input.TextArea placeholder="Fatura adresi" rows={2} disabled={!!selectedCustomerId} />
+              </Form.Item>
+
+              <Form.Item label="Ödeme Yöntemi" required>
+                <Radio.Group
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  style={{ display: 'flex', gap: 10, width: '100%' }}
+                >
+                  {(['nakit', 'kart', 'havale'] as PaymentMethod[]).map((m) => (
+                    <Radio.Button
+                      key={m}
+                      value={m}
+                      style={{
+                        flex: 1, textAlign: 'center', height: 44, lineHeight: '44px',
+                        borderRadius: 10, fontSize: 14, fontWeight: 500,
+                      }}
+                    >
+                      {PAYMENT_ICONS[m]} {PAYMENT_LABELS[m]}
+                    </Radio.Button>
+                  ))}
+                </Radio.Group>
+              </Form.Item>
+            </Form>
+
+            <Button
+              type="primary"
+              danger
+              block
+              icon={<FilePdfOutlined />}
+              onClick={handleCustomerNext}
+              style={{ borderRadius: 12, height: 48, fontSize: 15, fontWeight: 600, marginTop: 4 }}
+            >
+              Satış Önizleme
             </Button>
           </div>
 
-          <div className="sales-page__customer-header">
-            <div className="sales-page__customer-header-icon">
-              <UserOutlined />
+          <div className="sales-page__customer-sidebar">
+            <div className="sales-page__cart-sidebar-title">
+              <WalletOutlined />
+              Sipariş Özeti
             </div>
-            <div className="sales-page__customer-header-title">Müşteri Bilgileri</div>
-            <div className="sales-page__customer-header-sub">Satışı tamamlamak için müşteri bilgilerini doldurun</div>
-          </div>
 
-          <div className="sales-page__customer-summary">
-            <div className="sales-page__customer-summary-row">
-              <span>Ürün Adedi</span>
-              <span>{cartItems.reduce((s, i) => s + i.quantity, 0)}</span>
+            <div className="sales-page__cart-sidebar-items">
+              {cartItems.map((item) => (
+                <div className="sales-page__cart-sidebar-item" key={item.productId}>
+                  <div className="sales-page__cart-sidebar-item-qty">{item.quantity}</div>
+                  <div className="sales-page__cart-sidebar-item-info">
+                    <div className="sales-page__cart-sidebar-item-name">{item.productName}</div>
+                    <div className="sales-page__cart-sidebar-item-price">₺{item.unitPrice} / adet</div>
+                  </div>
+                  <div className="sales-page__cart-sidebar-item-total">₺{item.total.toFixed(2)}</div>
+                </div>
+              ))}
             </div>
-            <div className="sales-page__customer-summary-row">
-              <span>Ara Toplam</span>
-              <span>₺{subtotal.toLocaleString('tr-TR')}</span>
-            </div>
-            {discountTotal > 0 && (
-              <div className="sales-page__customer-summary-row">
-                <span>İskonto</span>
-                <span style={{ color: '#E32727' }}>-₺{discountTotal.toLocaleString('tr-TR')}</span>
+
+            <div className="sales-page__cart-sidebar-divider" />
+
+            <div className="sales-page__cart-sidebar-summary">
+              <div className="sales-page__cart-sidebar-row">
+                <span>Ürün Adedi</span>
+                <span>{cartItems.reduce((s, i) => s + i.quantity, 0)}</span>
               </div>
-            )}
-            <div className="sales-page__customer-summary-total">
-              <span>Genel Toplam</span>
-              <span>₺{grandTotal.toFixed(2)}</span>
+              <div className="sales-page__cart-sidebar-row">
+                <span>Ara Toplam</span>
+                <span>₺{subtotal.toLocaleString('tr-TR')}</span>
+              </div>
+              {discountTotal > 0 && (
+                <div className="sales-page__cart-sidebar-row">
+                  <span>İskonto</span>
+                  <span style={{ color: '#E32727' }}>-₺{discountTotal.toLocaleString('tr-TR')}</span>
+                </div>
+              )}
+              <div className="sales-page__cart-sidebar-row">
+                <span>KDV (%20)</span>
+                <span>₺{taxAmount.toFixed(2)}</span>
+              </div>
+              <div className="sales-page__cart-sidebar-total">
+                <span>Genel Toplam</span>
+                <span>₺{grandTotal.toFixed(2)}</span>
+              </div>
             </div>
           </div>
-
-          <Form form={customerForm} layout="vertical" size="large">
-            <Form.Item label="Mevcut Müşteri">
-              <Select
-                showSearch
-                allowClear
-                placeholder="Müşteri seçin (opsiyonel)"
-                value={selectedCustomerId}
-                onChange={(id) => {
-                  setSelectedCustomerId(id);
-                  if (id) {
-                    const c = customers.find((x) => x.id === id);
-                    if (c) {
-                      customerForm.setFieldsValue({ fullName: c.fullName, phone: c.phone, email: c.email });
-                    }
-                  } else {
-                    customerForm.resetFields();
-                  }
-                }}
-                filterOption={(input, option) => (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())}
-                options={customers.map((c) => ({ value: c.id, label: `${c.fullName} — ${c.phone}` }))}
-              />
-            </Form.Item>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
-              <Form.Item name="fullName" label="Ad Soyad" rules={[{ required: !selectedCustomerId, message: 'Ad soyad gerekli' }]}>
-                <Input placeholder="Ad Soyad" disabled={!!selectedCustomerId} />
-              </Form.Item>
-              <Form.Item name="phone" label="Telefon" rules={[{ required: !selectedCustomerId, message: 'Telefon gerekli' }]}>
-                <Input placeholder="05xx xxx xx xx" disabled={!!selectedCustomerId} />
-              </Form.Item>
-            </div>
-
-            <Form.Item name="email" label="E-posta">
-              <Input placeholder="E-posta (opsiyonel)" type="email" disabled={!!selectedCustomerId} />
-            </Form.Item>
-
-            <Form.Item label="Ödeme Yöntemi" required>
-              <Radio.Group
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                style={{ display: 'flex', gap: 10, width: '100%' }}
-              >
-                {(['nakit', 'kart', 'havale'] as PaymentMethod[]).map((m) => (
-                  <Radio.Button
-                    key={m}
-                    value={m}
-                    style={{
-                      flex: 1, textAlign: 'center', height: 44, lineHeight: '44px',
-                      borderRadius: 10, fontSize: 14, fontWeight: 500,
-                    }}
-                  >
-                    {PAYMENT_ICONS[m]} {PAYMENT_LABELS[m]}
-                  </Radio.Button>
-                ))}
-              </Radio.Group>
-            </Form.Item>
-          </Form>
-
-          <Button
-            type="primary"
-            danger
-            block
-            icon={<FilePdfOutlined />}
-            onClick={handleCustomerNext}
-            style={{ borderRadius: 12, height: 48, fontSize: 15, fontWeight: 600, marginTop: 4 }}
-          >
-            Fatura Önizleme
-          </Button>
         </div>
       </div>
     );
@@ -758,7 +880,7 @@ export default function SalesPage() {
             </div>
             <div className="sales-page__spotlight-title">Yeni Satış</div>
             <div className="sales-page__spotlight-sub">
-              Ürün adı, kodu ile arama yapın veya barkod okutarak sepete ekleyin
+              Ürün adı ile arama yapın veya barkod okutarak sepete ekleyin
             </div>
           </div>
 
@@ -768,7 +890,7 @@ export default function SalesPage() {
               showSearch
               value={undefined}
               searchValue={productSearch}
-              placeholder="Ürün adı veya kodu ile arayın..."
+              placeholder="Ürün adı veya barkod ile arayın..."
               filterOption={false}
               onSearch={setProductSearch}
               onSelect={handleProductSelect}
@@ -780,7 +902,7 @@ export default function SalesPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 14 }}>{p.name}</div>
-                      <div style={{ fontSize: 12, color: '#94A3B8' }}>{p.code}</div>
+                      <div style={{ fontSize: 12, color: '#94A3B8' }}>{p.barcode}</div>
                     </div>
                     <Text strong style={{ color: '#E32727', fontSize: 15 }}>₺{p.price}</Text>
                   </div>
@@ -837,7 +959,7 @@ export default function SalesPage() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
                       <div>
                         <div style={{ fontWeight: 600, fontSize: 14 }}>{p.name}</div>
-                        <div style={{ fontSize: 12, color: '#94A3B8' }}>{p.code}</div>
+                        <div style={{ fontSize: 12, color: '#94A3B8' }}>{p.barcode}</div>
                       </div>
                       <Text strong style={{ color: '#E32727', fontSize: 15 }}>₺{p.price}</Text>
                     </div>

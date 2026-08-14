@@ -11,8 +11,16 @@ interface UseStockReturn {
   state: State;
   search: string;
   filter: StockFilter;
+  brandFilter: string;
+  modelFilter: string;
+  sizeFilter: string;
+  colorFilter: string;
   setSearch: (value: string) => void;
   setFilter: (filter: StockFilter) => void;
+  setBrandFilter: (brand: string) => void;
+  setModelFilter: (model: string) => void;
+  setSizeFilter: (size: string) => void;
+  setColorFilter: (color: string) => void;
   handleAdd: (data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   handleUpdate: (id: string, data: Partial<Omit<Product, 'id' | 'createdAt' | 'updatedAt'>>) => Promise<void>;
   handleDelete: (id: string) => Promise<void>;
@@ -24,6 +32,10 @@ export function useStock(): UseStockReturn {
   const [state, setState] = useState<State>('loading');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<StockFilter>('all');
+  const [brandFilter, setBrandFilter] = useState('');
+  const [modelFilter, setModelFilter] = useState('');
+  const [sizeFilter, setSizeFilter] = useState('');
+  const [colorFilter, setColorFilter] = useState('');
 
   const fetch = useCallback(() => {
     setState('loading');
@@ -48,18 +60,35 @@ export function useStock(): UseStockReturn {
       result = result.filter((p) => p.stock > p.minStock);
     }
 
+    if (brandFilter) {
+      result = result.filter((p) => p.brand === brandFilter);
+    }
+
+    if (modelFilter) {
+      result = result.filter((p) => p.model === modelFilter);
+    }
+
+    if (sizeFilter) {
+      result = result.filter((p) => p.size === sizeFilter);
+    }
+
+    if (colorFilter) {
+      result = result.filter((p) => p.color === colorFilter);
+    }
+
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
           p.brand.toLowerCase().includes(q) ||
-          p.model.toLowerCase().includes(q)
+          p.model.toLowerCase().includes(q) ||
+          p.barcode.toLowerCase().includes(q)
       );
     }
 
     return result;
-  }, [products, filter, search]);
+  }, [products, filter, brandFilter, modelFilter, sizeFilter, colorFilter, search]);
 
   const handleAdd = async (data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
@@ -98,7 +127,9 @@ export function useStock(): UseStockReturn {
 
   return {
     products, filteredProducts, state, search, filter,
-    setSearch, setFilter, handleAdd, handleUpdate, handleDelete,
+    brandFilter, modelFilter, sizeFilter, colorFilter,
+    setSearch, setFilter, setBrandFilter, setModelFilter, setSizeFilter, setColorFilter,
+    handleAdd, handleUpdate, handleDelete,
     retry: fetch,
   };
 }

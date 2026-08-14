@@ -106,11 +106,11 @@ export default function TransactionsPage() {
     filteredLogs,
     logSearch,
     logTypeFilter,
-    logRoleFilter,
+    logUserFilter,
     setPeriod,
     setLogSearch,
     setLogTypeFilter,
-    setLogRoleFilter,
+    setLogUserFilter,
     openInvoiceModal,
     closeInvoiceModal,
     exportToCSV,
@@ -310,7 +310,7 @@ export default function TransactionsPage() {
             <div>
               <h3 className="transactions-page__section-heading">Aktiviteler</h3>
               <p className="transactions-page__section-subtext">
-                Tüm kullanıcı hareketleri, stok güncellemeleri ve fatura işlemleri detaylıca kayıt altına alınır.
+                Tüm kullanıcı hareketleri, stok güncellemeleri ve satış işlemleri detaylıca kayıt altına alınır.
               </p>
             </div>
           </div>
@@ -333,16 +333,16 @@ export default function TransactionsPage() {
 
 
             <Select
-              value={logRoleFilter}
-              onChange={setLogRoleFilter}
+              value={logUserFilter}
+              onChange={setLogUserFilter}
               style={{ width: 160 }}
               size="large"
               options={[
-                { value: 'all', label: 'Tüm Rolleri Gör' },
-                { value: 'SuperAdmin', label: 'SuperAdmin' },
-                { value: 'Admin', label: 'Admin' },
-                { value: 'Personel', label: 'Personel' },
-                { value: 'Guest', label: 'Guest / Maliyeci' },
+                { value: 'all', label: 'Tüm Kullanıcılar' },
+                { value: 'Zeynel', label: 'Zeynel' },
+                { value: 'Ayşe', label: 'Ayşe' },
+                { value: 'Abdullah', label: 'Abdullah' },
+                { value: 'Maliyeci', label: 'Maliyeci' },
               ]}
             />
 
@@ -415,10 +415,10 @@ export default function TransactionsPage() {
                 </div>
               </div>
               <div className="transactions-page__kpi-value">
-                {summary?.salesCount ?? 0} <span className="transactions-page__kpi-unit">fatura</span>
+                {summary?.salesCount ?? 0} <span className="transactions-page__kpi-unit">satış</span>
               </div>
               <div className="transactions-page__kpi-footer">
-                <span className="transactions-page__kpi-subtext">toplam işlem adedi</span>
+                <span className="transactions-page__kpi-subtext">toplam satış adedi</span>
               </div>
             </div>
 
@@ -451,7 +451,7 @@ export default function TransactionsPage() {
                 ₺{totalStockValue.toLocaleString('tr-TR')}
               </div>
               <div className="transactions-page__kpi-footer">
-                <span className="transactions-page__kpi-subtext">Mevcut depo toplam satis degeri</span>
+                <span className="transactions-page__kpi-subtext">mevcut stok değeri</span>
               </div>
             </div>
           </div>
@@ -531,7 +531,7 @@ export default function TransactionsPage() {
                     <RiseOutlined />
                   </div>
                   <div>
-                    <span>{period === 'daily' ? 'Günlük Ciro Grafiği' : period === 'weekly' ? 'Haftalık Trend Analizi' : 'Aylık Performans Trendi'}</span>
+                    <span>{period === 'daily' ? 'Günlük Ciro Grafiği' : period === 'weekly' ? 'Haftalık Ciro Grafiği' : 'Aylık Ciro Grafiği'}</span>
                     <div className="transactions-page__section-subtitle">
                       En yüksek ciro: <strong style={{ color: '#E32727' }}>{formatTurkishDate(peakDailyDay?.date || '')} (₺{peakDailyDay?.total.toLocaleString('tr-TR')})</strong>
                     </div>
@@ -676,8 +676,8 @@ export default function TransactionsPage() {
                 <div className="transactions-page__invoice-brand">
                   <ShopOutlined /> ŞAHİN MOTOR & YEDEK PARÇA
                 </div>
-                <h2 className="transactions-page__invoice-title">RESMİ SATIŞ FATURASI</h2>
-                <Text type="secondary">Fatura No: <strong>{selectedSale.id}</strong></Text>
+                <h2 className="transactions-page__invoice-title">SATIŞ DETAYI</h2>
+                <Text type="secondary">Satış No: <strong>{selectedSale.id}</strong></Text>
               </div>
               <div className="transactions-page__invoice-status-badge">
                 <Tag color={STATUS_MAP[selectedSale.durum]?.color || 'default'} style={{ fontSize: 13, padding: '4px 12px', borderRadius: 6 }}>
@@ -708,10 +708,10 @@ export default function TransactionsPage() {
             </div>
 
             {/* Itemized Table */}
-            <div className="transactions-page__invoice-items-title">FATURA KALEMLERİ</div>
+            <div className="transactions-page__invoice-items-title">SATIŞ KALEMLERİ</div>
             <Table
               columns={[
-                { title: 'Ürün Kodu', dataIndex: 'productCode', key: 'productCode', width: 110 },
+                { title: 'Barkod', dataIndex: 'productCode', key: 'productCode', width: 110 },
                 { title: 'Ürün / Hizmet', dataIndex: 'productName', key: 'productName' },
                 { title: 'Birim Fiyat', dataIndex: 'unitPrice', key: 'unitPrice', width: 110, align: 'right' as const, render: (v: number) => `₺${v.toLocaleString('tr-TR')}` },
                 { title: 'Adet', dataIndex: 'quantity', key: 'quantity', width: 70, align: 'center' as const },
@@ -744,7 +744,7 @@ export default function TransactionsPage() {
             {/* Modal Actions */}
             <div className="transactions-page__invoice-modal-actions">
               <Button icon={<PrinterOutlined />} onClick={() => window.print()}>
-                Faturayı Yazdır
+                Satışı Yazdır
               </Button>
               <Button type="primary" danger onClick={closeInvoiceModal}>
                 Kapat

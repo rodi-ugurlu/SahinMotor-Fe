@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { message } from 'antd';
-import type { Customer, CustomerFormValues } from '../types/customers';
+import type { Customer, CustomerFormValues, CustomerType } from '../types/customers';
 import { addCustomer, deleteCustomer, getCustomers, updateCustomer } from '../services/customersService';
 
 type State = 'loading' | 'loaded' | 'empty' | 'error';
@@ -10,7 +10,9 @@ interface UseCustomersReturn {
   filteredCustomers: Customer[];
   state: State;
   search: string;
+  typeFilter: CustomerType | 'all';
   setSearch: (value: string) => void;
+  setTypeFilter: (value: CustomerType | 'all') => void;
   handleAdd: (data: CustomerFormValues) => Promise<void>;
   handleUpdate: (id: string, data: Partial<CustomerFormValues>) => Promise<void>;
   handleDelete: (id: string) => Promise<void>;
@@ -21,6 +23,7 @@ export function useCustomers(): UseCustomersReturn {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [state, setState] = useState<State>('loading');
   const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<CustomerType | 'all'>('all');
 
   const fetch = useCallback(() => {
     setState('loading');
@@ -37,18 +40,24 @@ export function useCustomers(): UseCustomersReturn {
   }, [fetch]);
 
   const filteredCustomers = useMemo(() => {
-    if (!search.trim()) return customers;
-    const q = search.toLowerCase();
-    return customers.filter(
-      (c) =>
-        c.fullName.toLowerCase().includes(q) ||
-        c.phone.includes(q) ||
-        c.email.toLowerCase().includes(q) ||
-        c.tc.includes(q) ||
-        c.vkn.includes(q) ||
-        c.taxOffice.toLowerCase().includes(q)
-    );
-  }, [customers, search]);
+    let result = customers;
+    if (typeFilter !== 'all') {
+      result = result.filter((c) => c.type === typeFilter);
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (c) =>
+          c.fullName.toLowerCase().includes(q) ||
+          c.phone.includes(q) ||
+          c.email.toLowerCase().includes(q) ||
+          (c.tc && c.tc.includes(q)) ||
+          (c.vkn && c.vkn.includes(q)) ||
+          (c.taxOffice && c.taxOffice.toLowerCase().includes(q))
+      );
+    }
+    return result;
+  }, [customers, search, typeFilter]);
 
   const handleAdd = async (data: CustomerFormValues) => {
     try {
@@ -90,7 +99,9 @@ export function useCustomers(): UseCustomersReturn {
     filteredCustomers,
     state,
     search,
+    typeFilter,
     setSearch,
+    setTypeFilter,
     handleAdd,
     handleUpdate,
     handleDelete,

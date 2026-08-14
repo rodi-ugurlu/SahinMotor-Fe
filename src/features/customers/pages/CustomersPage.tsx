@@ -8,9 +8,12 @@ import {
   Form,
   Input,
   Modal,
+  Radio,
+  Select,
   Skeleton,
   Space,
   Table,
+  Tag,
   Tooltip,
   Typography,
 
@@ -27,15 +30,25 @@ import {
   ShoppingCartOutlined,
 } from '@ant-design/icons';
 import { useCustomers } from '../hooks/useCustomers';
-import type { Customer, CustomerFormValues } from '../types/customers';
+import type { Customer, CustomerFormValues, CustomerType } from '../types/customers';
 import './CustomersPage.css';
 
 const { Text, Title } = Typography;
 
+const TYPE_LABELS: Record<CustomerType, string> = {
+  individual: 'Bireysel',
+  company: 'Kurumsal',
+};
+
+const TYPE_COLORS: Record<CustomerType, string> = {
+  individual: '#3B82F6',
+  company: '#8B5CF6',
+};
+
 export default function CustomersPage() {
   const {
-    filteredCustomers, state, search,
-    setSearch, handleAdd, handleUpdate, handleDelete, retry,
+    filteredCustomers, state, search, typeFilter,
+    setSearch, setTypeFilter, handleAdd, handleUpdate, handleDelete, retry,
   } = useCustomers();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -43,15 +56,18 @@ export default function CustomersPage() {
   const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
   const [detailCustomer, setDetailCustomer] = useState<Customer | null>(null);
   const [form] = Form.useForm();
+  const [formType, setFormType] = useState<CustomerType>('individual');
 
   const openAdd = () => {
     setEditingCustomer(null);
+    setFormType('individual');
     form.resetFields();
     setModalOpen(true);
   };
 
   const openEdit = (customer: Customer) => {
     setEditingCustomer(customer);
+    setFormType(customer.type);
     form.setFieldsValue(customer);
     setModalOpen(true);
   };
@@ -59,10 +75,11 @@ export default function CustomersPage() {
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
+      const data = { ...values, type: formType };
       if (editingCustomer) {
-        await handleUpdate(editingCustomer.id, values);
+        await handleUpdate(editingCustomer.id, data);
       } else {
-        await handleAdd(values as CustomerFormValues);
+        await handleAdd(data as CustomerFormValues);
       }
       setModalOpen(false);
       setEditingCustomer(null);
@@ -95,18 +112,27 @@ export default function CustomersPage() {
       ),
     },
     {
+      title: 'Tip',
+      dataIndex: 'type',
+      key: 'type',
+      width: 100,
+      render: (v: CustomerType) => (
+        <Tag color={TYPE_COLORS[v]}>{TYPE_LABELS[v]}</Tag>
+      ),
+    },
+    {
       title: 'TC',
       dataIndex: 'tc',
       key: 'tc',
       width: 110,
-      render: (v: string) => <Text>{v}</Text>,
+      render: (v: string) => <Text>{v || '-'}</Text>,
     },
     {
       title: 'VKN',
       dataIndex: 'vkn',
       key: 'vkn',
       width: 110,
-      render: (v: string) => <Text>{v}</Text>,
+      render: (v: string) => <Text>{v || '-'}</Text>,
     },
     {
       title: 'E-posta',
@@ -162,6 +188,16 @@ export default function CustomersPage() {
           <Button type="primary" danger icon={<PlusOutlined />} onClick={openAdd}>
             Yeni Müşteri
           </Button>
+          <Select
+            value={typeFilter}
+            onChange={(v) => setTypeFilter(v)}
+            style={{ width: 140 }}
+            options={[
+              { value: 'all', label: 'Tümü' },
+              { value: 'individual', label: 'Bireysel' },
+              { value: 'company', label: 'Kurumsal' },
+            ]}
+          />
           <Input
             prefix={<SearchOutlined />}
             placeholder="İsim, telefon, TC, VKN ara..."
@@ -213,29 +249,61 @@ export default function CustomersPage() {
         destroyOnClose
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item name="fullName" label="Ad Soyad" rules={[{ required: true, message: 'Ad soyad gerekli' }]}>
-            <Input placeholder="Ad Soyad" />
+          <Form.Item label="Müşteri Tipi">
+            <Radio.Group
+              value={formType}
+              onChange={(e) => {
+                setFormType(e.target.value);
+                form.resetFields();
+              }}
+              disabled={!!editingCustomer}
+              style={{ display: 'flex', gap: 10, width: '100%' }}
+            >
+              <Radio.Button value="individual" style={{ flex: 1, textAlign: 'center', height: 44, lineHeight: '44px', borderRadius: 10, fontSize: 14, fontWeight: 500 }}>
+                Bireysel
+              </Radio.Button>
+              <Radio.Button value="company" style={{ flex: 1, textAlign: 'center', height: 44, lineHeight: '44px', borderRadius: 10, fontSize: 14, fontWeight: 500 }}>
+                Kurumsal
+              </Radio.Button>
+            </Radio.Group>
           </Form.Item>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
-            <Form.Item name="tc" label="TC Kimlik No" rules={[{ required: true, message: 'TC gerekli' }]}>
-              <Input placeholder="11 haneli" maxLength={11} />
-            </Form.Item>
-            <Form.Item name="vkn" label="Vergi No (VKN)" rules={[{ required: true, message: 'VKN gerekli' }]}>
-              <Input placeholder="10 haneli" maxLength={10} />
-            </Form.Item>
-          </div>
+          <Form.Item
+            name="fullName"
+            label={formType === 'individual' ? 'Ad Soyad' : 'Firma Adı'}
+            rules={[{ required: true, message: formType === 'individual' ? 'Ad soyad gerekli' : 'Firma adı gerekli' }]}
+          >
+            <Input placeholder={formType === 'individual' ? 'Ad Soyad' : 'Firma Adı'} />
+          </Form.Item>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
-            <Form.Item name="taxOffice" label="Vergi Dairesi" rules={[{ required: true, message: 'Vergi dairesi gerekli' }]}>
-              <Input placeholder="Vergi dairesi adı" />
-            </Form.Item>
-            <Form.Item name="phone" label="Telefon" rules={[{ required: true, message: 'Telefon gerekli' }]}>
-              <Input placeholder="05xx xxx xx xx" />
-            </Form.Item>
-          </div>
+          {formType === 'individual' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+              <Form.Item name="tc" label="TC Kimlik No" rules={[{ required: true, message: 'TC gerekli' }, { pattern: /^\d{11}$/, message: 'TC 11 haneli olmalıdır' }]}>
+                <Input placeholder="12345678901" maxLength={11} />
+              </Form.Item>
+              <Form.Item name="phone" label="Telefon" rules={[{ required: true, message: 'Telefon gerekli' }]}>
+                <Input placeholder="05xx xxx xx xx" />
+              </Form.Item>
+            </div>
+          )}
 
-          <Form.Item name="email" label="E-posta" rules={[{ required: true, message: 'E-posta gerekli' }, { type: 'email', message: 'Geçerli bir e-posta girin' }]}>
+          {formType === 'company' && (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+                <Form.Item name="vkn" label="Vergi No" rules={[{ required: true, message: 'VKN gerekli' }, { pattern: /^\d{10}$/, message: 'VKN 10 haneli olmalıdır' }]}>
+                  <Input placeholder="1234567890" maxLength={10} />
+                </Form.Item>
+                <Form.Item name="taxOffice" label="Vergi Dairesi" rules={[{ required: true, message: 'Vergi dairesi gerekli' }]}>
+                  <Input placeholder="Vergi dairesi adı" />
+                </Form.Item>
+              </div>
+              <Form.Item name="phone" label="Telefon" rules={[{ required: true, message: 'Telefon gerekli' }]}>
+                <Input placeholder="05xx xxx xx xx" />
+              </Form.Item>
+            </>
+          )}
+
+          <Form.Item name="email" label="E-posta" rules={[{ type: 'email', message: 'Geçerli bir e-posta girin' }]}>
             <Input placeholder="ornek@mail.com" type="email" />
           </Form.Item>
 
@@ -255,9 +323,18 @@ export default function CustomersPage() {
           <>
             <Descriptions bordered column={1} size="small" style={{ marginBottom: 24 }}>
               <Descriptions.Item label="Ad Soyad">{detailCustomer.fullName}</Descriptions.Item>
-              <Descriptions.Item label="TC Kimlik No">{detailCustomer.tc}</Descriptions.Item>
-              <Descriptions.Item label="Vergi No (VKN)">{detailCustomer.vkn}</Descriptions.Item>
-              <Descriptions.Item label="Vergi Dairesi">{detailCustomer.taxOffice}</Descriptions.Item>
+              <Descriptions.Item label="Müşteri Tipi">
+                <Tag color={TYPE_COLORS[detailCustomer.type]}>{TYPE_LABELS[detailCustomer.type]}</Tag>
+              </Descriptions.Item>
+              {detailCustomer.type === 'individual' && (
+                <Descriptions.Item label="TC Kimlik No">{detailCustomer.tc}</Descriptions.Item>
+              )}
+              {detailCustomer.type === 'company' && (
+                <>
+                  <Descriptions.Item label="Vergi No (VKN)">{detailCustomer.vkn}</Descriptions.Item>
+                  <Descriptions.Item label="Vergi Dairesi">{detailCustomer.taxOffice}</Descriptions.Item>
+                </>
+              )}
               <Descriptions.Item label="Telefon">{detailCustomer.phone}</Descriptions.Item>
               <Descriptions.Item label="E-posta">{detailCustomer.email}</Descriptions.Item>
               <Descriptions.Item label="Fatura Adresi">{detailCustomer.billingAddress}</Descriptions.Item>

@@ -2,7 +2,7 @@ import { Avatar, Button, Card, Typography } from 'antd';
 import { ArrowRightOutlined } from '@ant-design/icons';
 import type { Business } from '../types/business';
 
-const { Text, Title } = Typography;
+const { Title } = Typography;
 
 interface BusinessCardProps {
   business: Business;
@@ -21,11 +21,11 @@ export function BusinessCard({ business, onSelect }: BusinessCardProps) {
     >
       <Avatar
         src={business.logoUrl}
-        size={80}
+        size={100}
         style={{
           backgroundColor: business.logoUrl ? 'transparent' : '#E32727',
           border: '2px solid #E2E8F0',
-          fontSize: 32,
+          fontSize: 40,
           fontWeight: 700,
         }}
       >
@@ -35,13 +35,6 @@ export function BusinessCard({ business, onSelect }: BusinessCardProps) {
       <Title level={4} style={{ margin: 0, color: '#1E293B', fontSize: 18 }}>
         {business.name}
       </Title>
-
-      <Text
-        type="secondary"
-        style={{ textAlign: 'center', fontSize: 14, lineHeight: 1.4, maxWidth: 220, display: 'block' }}
-      >
-        {business.description}
-      </Text>
 
       <Button
         type="primary"

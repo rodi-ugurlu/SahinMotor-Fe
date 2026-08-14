@@ -11,12 +11,16 @@ interface UseSalesReturn {
   state: State;
   search: string;
   statusFilter: Sale['durum'] | 'all';
+  dateFrom: string;
+  dateTo: string;
   customers: Customer[];
-  products: Array<{ id: string; name: string; code: string; price: number }>;
+  products: Array<{ id: string; name: string; barcode: string; price: number }>;
   cartItems: SaleItem[];
   showSalesList: boolean;
   setSearch: (s: string) => void;
   setStatusFilter: (f: Sale['durum'] | 'all') => void;
+  setDateFrom: (d: string) => void;
+  setDateTo: (d: string) => void;
   setShowSalesList: (v: boolean) => void;
   setCartItems: (items: SaleItem[]) => void;
   addToCart: (productId: string) => void;
@@ -37,8 +41,10 @@ export function useSales(): UseSalesReturn {
   const [state, setState] = useState<State>('loading');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<Sale['durum'] | 'all'>('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [products, setProducts] = useState<Array<{ id: string; name: string; code: string; price: number }>>([]);
+  const [products, setProducts] = useState<Array<{ id: string; name: string; barcode: string; price: number }>>([]);
   const [cartItems, setCartItems] = useState<SaleItem[]>([]);
   const [showSalesList, setShowSalesList] = useState(false);
 
@@ -69,8 +75,25 @@ export function useSales(): UseSalesReturn {
           s.musteriTelefon.includes(q)
       );
     }
+    if (dateFrom || dateTo) {
+      result = result.filter((s) => {
+        const parts = s.createdAt.split(' ')[0].split('.');
+        const saleKey = `${parts[2]}${parts[1]}${parts[0]}`;
+        if (dateFrom) {
+          const fromParts = dateFrom.split('.');
+          const fromKey = `${fromParts[2]}${fromParts[1]}${fromParts[0]}`;
+          if (saleKey < fromKey) return false;
+        }
+        if (dateTo) {
+          const toParts = dateTo.split('.');
+          const toKey = `${toParts[2]}${toParts[1]}${toParts[0]}`;
+          if (saleKey > toKey) return false;
+        }
+        return true;
+      });
+    }
     return result;
-  }, [sales, search, statusFilter]);
+  }, [sales, search, statusFilter, dateFrom, dateTo]);
 
   const addToCart = (productId: string) => {
     const product = products.find((p) => p.id === productId);
@@ -92,7 +115,7 @@ export function useSales(): UseSalesReturn {
       return [
         ...prev,
         {
-          productId: product.id, productName: product.name, productCode: product.code,
+          productId: product.id, productName: product.name, productCode: product.barcode,
           unitPrice: product.price, quantity: 1, discountPercent: 0, discountAmount: 0, total: product.price,
         },
       ];
@@ -162,9 +185,9 @@ export function useSales(): UseSalesReturn {
   };
 
   return {
-    sales, filteredSales, state, search, statusFilter,
+    sales, filteredSales, state, search, statusFilter, dateFrom, dateTo,
     customers, products, cartItems, showSalesList,
-    setSearch, setStatusFilter, setShowSalesList, setCartItems,
+    setSearch, setStatusFilter, setDateFrom, setDateTo, setShowSalesList, setCartItems,
     addToCart, updateCartItem, removeCartItem,
     handleCreateSale, handleUpdateStatus, handleDeleteSale,
     retry: fetch,

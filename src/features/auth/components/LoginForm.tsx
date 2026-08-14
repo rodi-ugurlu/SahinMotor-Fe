@@ -11,6 +11,8 @@ interface LoginFormProps {
   onFinish: (values: { email: string; password: string }) => Promise<void>;
   onForgotPassword: (email: string) => Promise<void>;
   isLoading: boolean;
+  loginError: string | null;
+  onClearError: () => void;
 }
 
 export function validateEmail(email?: string): boolean {
@@ -18,12 +20,16 @@ export function validateEmail(email?: string): boolean {
   return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email.trim());
 }
 
-export function LoginForm({ form, onFinish, onForgotPassword, isLoading }: LoginFormProps) {
+export function LoginForm({ form, onFinish, onForgotPassword, isLoading, loginError, onClearError }: LoginFormProps) {
   const [infoState, setInfoState] = useState<{
     type: 'success' | 'warning' | 'info' | 'error';
     message: string;
   } | null>(null);
   const [isForgotLoading, setIsForgotLoading] = useState(false);
+
+  const alertState = loginError
+    ? { type: 'error' as const, message: loginError }
+    : infoState;
 
   const handleForgotPasswordClick = async () => {
     const email = form.getFieldValue('email')?.trim();
@@ -77,13 +83,16 @@ export function LoginForm({ form, onFinish, onForgotPassword, isLoading }: Login
         Kullanıcı Girişi
       </Title>
 
-      {infoState && (
+      {alertState && (
         <Alert
-          message={infoState.message}
-          type={infoState.type}
+          message={alertState.message}
+          type={alertState.type}
           showIcon
           closable
-          onClose={() => setInfoState(null)}
+          onClose={() => {
+            setInfoState(null);
+            onClearError();
+          }}
           style={{ marginBottom: 16, borderRadius: 12 }}
         />
       )}
