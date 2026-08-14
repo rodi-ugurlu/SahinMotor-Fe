@@ -606,25 +606,29 @@ export default function SalesPage() {
 
             <div className="sales-page__proforma-body">
               <div className="sales-page__proforma-info">
-                <div className="sales-page__proforma-info-block">
-                  <span className="sales-page__proforma-info-label">Müşteri</span>
-                  <span className="sales-page__proforma-info-value">{previewSale.musteriAdi}</span>
-                </div>
-                <div className="sales-page__proforma-info-block">
-                  <span className="sales-page__proforma-info-label">Telefon</span>
-                  <span className="sales-page__proforma-info-value">{previewSale.musteriTelefon}</span>
-                </div>
-                {previewSale.musteriEmail && (
+                <div className="sales-page__proforma-info-col">
                   <div className="sales-page__proforma-info-block">
-                    <span className="sales-page__proforma-info-label">E-posta</span>
-                    <span className="sales-page__proforma-info-value">{previewSale.musteriEmail}</span>
+                    <span className="sales-page__proforma-info-label">Müşteri</span>
+                    <span className="sales-page__proforma-info-value">{previewSale.musteriAdi}</span>
                   </div>
-                )}
-                <div className="sales-page__proforma-info-block">
-                  <span className="sales-page__proforma-info-label">Ödeme Yöntemi</span>
-                  <span className="sales-page__proforma-info-value">
-                    {PAYMENT_ICONS[previewSale.odemeYontemi]} {PAYMENT_LABELS[previewSale.odemeYontemi]}
-                  </span>
+                  <div className="sales-page__proforma-info-block">
+                    <span className="sales-page__proforma-info-label">Telefon</span>
+                    <span className="sales-page__proforma-info-value">{previewSale.musteriTelefon}</span>
+                  </div>
+                  {previewSale.musteriEmail && (
+                    <div className="sales-page__proforma-info-block">
+                      <span className="sales-page__proforma-info-label">E-posta</span>
+                      <span className="sales-page__proforma-info-value">{previewSale.musteriEmail}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="sales-page__proforma-info-col">
+                  <div className="sales-page__proforma-info-block">
+                    <span className="sales-page__proforma-info-label">Ödeme Yöntemi</span>
+                    <span className="sales-page__proforma-info-value">
+                      {PAYMENT_ICONS[previewSale.odemeYontemi]} {PAYMENT_LABELS[previewSale.odemeYontemi]}
+                    </span>
+                  </div>
                 </div>
               </div>
 
