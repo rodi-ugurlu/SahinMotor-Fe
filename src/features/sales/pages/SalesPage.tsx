@@ -344,7 +344,7 @@ export default function SalesPage() {
       ),
     },
     {
-t       title: 'İskonto', key: 'discountPercent', width: 120,
+      title: 'İskonto', key: 'discountPercent', width: 120,
       render: (_: unknown, _record: SaleItem, index: number) => {
         const isFocused = focusedDiscountIndex === index;
         return (
