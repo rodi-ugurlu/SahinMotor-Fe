@@ -17,3 +17,12 @@ export interface Product {
 }
 
 export type StockFilter = 'all' | 'critical' | 'normal';
+
+export interface StockEntryItem {
+  productId?: string;
+  barcode: string;
+  name: string;
+  quantity: number;
+  isNew: boolean;
+  newProductData?: Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'stock'>;
+}
