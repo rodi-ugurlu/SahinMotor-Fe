@@ -40,7 +40,7 @@ const TYPE_LABELS: Record<CustomerType, string> = {
 };
 
 const TYPE_COLORS: Record<CustomerType, string> = {
-  individual: '#3B82F6',
+  individual: '#22C55E',
   company: '#8B5CF6',
 };
 
