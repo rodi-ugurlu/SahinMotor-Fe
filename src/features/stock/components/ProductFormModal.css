@@ -1,0 +1,16 @@
+.product-form__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0 16px;
+}
+
+.product-form__grid--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 640px) {
+  .product-form__grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+}

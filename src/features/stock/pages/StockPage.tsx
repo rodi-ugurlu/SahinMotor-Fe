@@ -26,7 +26,7 @@ import {
 import { useStock } from '../hooks/useStock';
 import { ProductFormModal } from '../components/ProductFormModal';
 import { StockEntryDrawer } from '../components/StockEntryDrawer';
-import type { Product } from '../types/stock';
+import type { Product, ProductFormValues } from '../types/stock';
 import './StockPage.css';
 
 const { Text } = Typography;
@@ -96,7 +96,7 @@ export default function StockPage() {
     }
   };
 
-  const handleSubmit = async (values: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleSubmit = async (values: ProductFormValues) => {
     try {
       if (editingProduct) {
         await handleUpdate(editingProduct.id, values);
@@ -240,11 +240,11 @@ export default function StockPage() {
           {state === 'loaded' && <Badge count={filteredProducts.length} color="#E32727" overflowCount={999} />}
         </div>
         <div className="stock-page__actions">
-          <Button type="primary" danger icon={<PlusOutlined />} onClick={openAdd}>
-            Yeni Ürün
-          </Button>
-          <Button icon={<InboxOutlined />} onClick={() => setStockEntryOpen(true)}>
+          <Button type="primary" danger icon={<InboxOutlined />} onClick={() => setStockEntryOpen(true)}>
             Mal Kabul
+          </Button>
+          <Button icon={<PlusOutlined />} onClick={openAdd}>
+            Yeni Ürün
           </Button>
           <Input
             prefix={<SearchOutlined />}
@@ -397,6 +397,7 @@ export default function StockPage() {
         key={formKey}
         open={modalOpen}
         editingProduct={editingProduct}
+        existingBarcodes={products.map((product) => product.barcode)}
         onCancel={() => { setModalOpen(false); setEditingProduct(null); }}
         onSubmit={handleSubmit}
       />

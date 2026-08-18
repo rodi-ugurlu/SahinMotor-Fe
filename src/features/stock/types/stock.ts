@@ -18,11 +18,13 @@ export interface Product {
 
 export type StockFilter = 'all' | 'critical' | 'normal';
 
+export type ProductFormValues = Omit<Product, 'id' | 'dealerId' | 'createdAt' | 'updatedAt'>;
+
 export interface StockEntryItem {
   productId?: string;
   barcode: string;
   name: string;
   quantity: number;
   isNew: boolean;
-  newProductData?: Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'stock'>;
+  newProductData?: Omit<Product, 'id' | 'dealerId' | 'createdAt' | 'updatedAt' | 'stock'>;
 }

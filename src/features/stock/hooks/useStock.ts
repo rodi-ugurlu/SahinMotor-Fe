@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { message } from 'antd';
-import type { Product, StockEntryItem, StockFilter } from '../types/stock';
+import { useParams } from 'react-router-dom';
+import type { Product, ProductFormValues, StockEntryItem, StockFilter } from '../types/stock';
 import { addProduct, applyStockEntries, deleteProduct, getProducts, updateProduct } from '../services/stockService';
 
 type State = 'loading' | 'loaded' | 'empty' | 'error';
@@ -21,14 +22,15 @@ interface UseStockReturn {
   setModelFilter: (model: string) => void;
   setSizeFilter: (size: string) => void;
   setColorFilter: (color: string) => void;
-  handleAdd: (data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  handleUpdate: (id: string, data: Partial<Omit<Product, 'id' | 'createdAt' | 'updatedAt'>>) => Promise<void>;
+  handleAdd: (data: ProductFormValues) => Promise<void>;
+  handleUpdate: (id: string, data: Partial<ProductFormValues>) => Promise<void>;
   handleDelete: (id: string) => Promise<void>;
   handleStockEntries: (entries: StockEntryItem[]) => Promise<void>;
   retry: () => void;
 }
 
 export function useStock(): UseStockReturn {
+  const { businessId = 'd1' } = useParams<{ businessId: string }>();
   const [products, setProducts] = useState<Product[]>([]);
   const [state, setState] = useState<State>('loading');
   const [search, setSearch] = useState('');
@@ -42,13 +44,15 @@ export function useStock(): UseStockReturn {
     setState('loading');
     getProducts()
       .then((data) => {
-        setProducts(data);
-        setState(data.length === 0 ? 'empty' : 'loaded');
+        const businessProducts = data.filter((product) => product.dealerId === businessId);
+        setProducts(businessProducts);
+        setState(businessProducts.length === 0 ? 'empty' : 'loaded');
       })
       .catch(() => setState('error'));
-  }, []);
+  }, [businessId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- route change starts a new stock load
     fetch();
   }, [fetch]);
 
@@ -91,9 +95,9 @@ export function useStock(): UseStockReturn {
     return result;
   }, [products, filter, brandFilter, modelFilter, sizeFilter, colorFilter, search]);
 
-  const handleAdd = async (data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleAdd = async (data: ProductFormValues) => {
     try {
-      const newProduct = await addProduct(data);
+      const newProduct = await addProduct({ ...data, dealerId: businessId });
       setProducts((prev) => [newProduct, ...prev]);
       setState('loaded');
       message.success('Ürün başarıyla eklendi');
@@ -102,7 +106,7 @@ export function useStock(): UseStockReturn {
     }
   };
 
-  const handleUpdate = async (id: string, data: Partial<Omit<Product, 'id' | 'createdAt' | 'updatedAt'>>) => {
+  const handleUpdate = async (id: string, data: Partial<ProductFormValues>) => {
     try {
       const updated = await updateProduct(id, data);
       setProducts((prev) => prev.map((p) => (p.id === id ? updated : p)));
@@ -128,7 +132,7 @@ export function useStock(): UseStockReturn {
 
   const handleStockEntries = async (entries: StockEntryItem[]) => {
     try {
-      const updated = await applyStockEntries(entries);
+      const updated = await applyStockEntries(entries, businessId);
       setProducts((prev) => {
         const updatedIds = new Set(updated.map((p) => p.id));
         const merged = [...updated, ...prev.filter((p) => !updatedIds.has(p.id))];

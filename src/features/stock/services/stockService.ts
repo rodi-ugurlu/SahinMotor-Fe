@@ -1,4 +1,4 @@
-import type { Product, StockEntryItem } from '../types/stock';
+import type { Product, ProductFormValues, StockEntryItem } from '../types/stock';
 
 const now = '06.08.2026 14:30';
 
@@ -25,7 +25,7 @@ export async function getProducts(): Promise<Product[]> {
   });
 }
 
-export async function addProduct(data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product> {
+export async function addProduct(data: ProductFormValues & { dealerId: string }): Promise<Product> {
   return new Promise((resolve) => {
     setTimeout(() => {
       const now = new Date().toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -57,21 +57,51 @@ export async function deleteProduct(id: string): Promise<void> {
   });
 }
 
-export async function applyStockEntries(entries: StockEntryItem[]): Promise<Product[]> {
+export async function applyStockEntries(entries: StockEntryItem[], dealerId: string): Promise<Product[]> {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
+      if (!dealerId) {
+        reject(new Error('İşletme bilgisi bulunamadı'));
+        return;
+      }
+
       const now = new Date().toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
       const next = [...products];
       const updated: Product[] = [];
+      const seenProductIds = new Set<string>();
+      const seenNewBarcodes = new Set<string>();
 
       for (const entry of entries) {
+        if (!Number.isSafeInteger(entry.quantity) || entry.quantity < 1) {
+          reject(new Error(`${entry.name} için geçerli bir giriş miktarı yazın`));
+          return;
+        }
+
         if (entry.isNew) {
           if (!entry.newProductData) {
-            return reject(new Error('Yeni ürün bilgileri eksik'));
+            reject(new Error('Yeni ürün bilgileri eksik'));
+            return;
           }
+
+          const barcode = entry.newProductData.barcode.trim();
+          if (!/^\d{6,32}$/.test(barcode)) {
+            reject(new Error(`${barcode} geçerli bir barkod değil`));
+            return;
+          }
+          const barcodeExists = next.some(
+            (product) => product.dealerId === dealerId && product.barcode.trim() === barcode
+          );
+          if (barcodeExists || seenNewBarcodes.has(barcode)) {
+            reject(new Error(`${barcode} barkoduyla kayıtlı bir ürün zaten var`));
+            return;
+          }
+
+          seenNewBarcodes.add(barcode);
           const newProduct: Product = {
             ...entry.newProductData,
+            barcode,
             id: String(Date.now()) + Math.random().toString(36).slice(2, 6),
+            dealerId,
             stock: entry.quantity,
             createdAt: now,
             updatedAt: now,
@@ -79,11 +109,26 @@ export async function applyStockEntries(entries: StockEntryItem[]): Promise<Prod
           next.unshift(newProduct);
           updated.push(newProduct);
         } else {
+          if (!entry.productId || seenProductIds.has(entry.productId)) {
+            reject(new Error(`${entry.name} mal kabul listesinde birden fazla kez yer alıyor`));
+            return;
+          }
+          seenProductIds.add(entry.productId);
           const index = next.findIndex((p) => p.id === entry.productId);
           if (index === -1) {
-            return reject(new Error('Ürün bulunamadı'));
+            reject(new Error('Ürün bulunamadı'));
+            return;
           }
-          const product = { ...next[index], stock: next[index].stock + entry.quantity, updatedAt: now };
+          if (next[index].dealerId && next[index].dealerId !== dealerId) {
+            reject(new Error(`${entry.name} seçili işletmeye ait değil`));
+            return;
+          }
+          const product = {
+            ...next[index],
+            dealerId: next[index].dealerId || dealerId,
+            stock: next[index].stock + entry.quantity,
+            updatedAt: now,
+          };
           next[index] = product;
           updated.push(product);
         }
