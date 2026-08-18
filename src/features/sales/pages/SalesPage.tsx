@@ -1,14 +1,17 @@
 import { useState, useRef, useCallback } from 'react';
+import dayjs from 'dayjs';
 import {
   Alert,
   Badge,
   Button,
+  DatePicker,
   Descriptions,
   Drawer,
   Form,
   Input,
   InputNumber,
   Modal,
+  Popover,
   Radio,
   Select,
   Skeleton,
@@ -21,6 +24,7 @@ import {
 } from 'antd';
 
 import {
+  CalendarOutlined,
   CameraOutlined,
   CheckCircleOutlined,
   CloseOutlined,
@@ -41,6 +45,7 @@ import type { Sale, SaleItem, PaymentMethod, CustomerType } from '../types/sales
 import './SalesPage.css';
 
 const { Text } = Typography;
+const { RangePicker } = DatePicker;
 
 const STATUS_MAP: Record<string, { color: string; label: string }> = {
   bitti: { color: 'green', label: 'Tamamlandı' },
@@ -92,6 +97,7 @@ export default function SalesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Sale | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewSale, setPreviewSale] = useState<Sale | null>(null);
+  const [dateRangeOpen, setDateRangeOpen] = useState(false);
 
   const [barcodeOpen, setBarcodeOpen] = useState(false);
   const [barcodeInput, setBarcodeInput] = useState('');
@@ -332,13 +338,13 @@ export default function SalesPage() {
     { title: 'Ürün', dataIndex: 'productName', key: 'productName', ellipsis: true },
     { title: 'Birim Fiyat', dataIndex: 'unitPrice', key: 'unitPrice', width: 90, render: (v: number) => `₺${v}` },
     {
-      title: 'Adet', key: 'quantity', width: 80,
+      title: 'Adet', key: 'quantity', width: 110,
       render: (_: unknown, _record: SaleItem, index: number) => (
-        <InputNumber min={1} value={cartItems[index].quantity} onChange={(v) => updateCartItem(index, { quantity: v ?? 1 })} style={{ width: 60 }} controls={false} />
+        <InputNumber min={1} value={cartItems[index].quantity} onChange={(v) => updateCartItem(index, { quantity: v ?? 1 })} style={{ width: '100%' }} />
       ),
     },
     {
-      title: 'İskonto %', key: 'discountPercent', width: 100,
+      title: 'İskonto', key: 'discountPercent', width: 120,
       render: (_: unknown, _record: SaleItem, index: number) => {
         const isFocused = focusedDiscountIndex === index;
         return (
@@ -350,9 +356,8 @@ export default function SalesPage() {
             onFocus={() => setFocusedDiscountIndex(index)}
             onBlur={() => setFocusedDiscountIndex(null)}
             className={`sales-page__discount-input${isFocused ? ' sales-page__discount-input--focused' : ''}`}
-            style={{ width: isFocused ? 72 : 60 }}
+            style={{ width: '100%' }}
             suffix="%"
-            controls={false}
           />
         );
       },
@@ -401,6 +406,36 @@ export default function SalesPage() {
                 style={{ width: 260 }}
                 allowClear
               />
+              <Popover
+                open={dateRangeOpen}
+                onOpenChange={setDateRangeOpen}
+                trigger="click"
+                placement="bottomRight"
+                content={
+                  <RangePicker
+                    value={dateFrom || dateTo ? [dateFrom ? dayjs(dateFrom, 'DD.MM.YYYY') : null, dateTo ? dayjs(dateTo, 'DD.MM.YYYY') : null] : null}
+                    onChange={(dates) => {
+                      if (dates && dates[0] && dates[1]) {
+                        setDateFrom(dates[0].format('DD.MM.YYYY'));
+                        setDateTo(dates[1].format('DD.MM.YYYY'));
+                      } else {
+                        setDateFrom('');
+                        setDateTo('');
+                      }
+                    }}
+                    format="DD.MM.YYYY"
+                    placeholder={['Başlangıç', 'Bitiş']}
+                    style={{ width: 280 }}
+                  />
+                }
+              >
+                <Button
+                  icon={<CalendarOutlined />}
+                  style={{ borderRadius: 8 }}
+                  type={dateFrom || dateTo ? 'primary' : 'default'}
+                  danger={!!(dateFrom || dateTo)}
+                />
+              </Popover>
             </div>
           </div>
 
@@ -415,23 +450,6 @@ export default function SalesPage() {
                 {f === 'all' ? 'Tümü' : STATUS_MAP[f]?.label ?? f}
               </Tag>
             ))}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 8 }}>
-              <Input
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                placeholder="Başlangıç (GG.AA.YYYY)"
-                style={{ width: 200, borderRadius: 8 }}
-                allowClear
-              />
-              <Text type="secondary" style={{ fontSize: 13 }}>-</Text>
-              <Input
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                placeholder="Bitiş (GG.AA.YYYY)"
-                style={{ width: 200, borderRadius: 8 }}
-                allowClear
-              />
-            </div>
           </div>
 
 
@@ -588,25 +606,29 @@ export default function SalesPage() {
 
             <div className="sales-page__proforma-body">
               <div className="sales-page__proforma-info">
-                <div className="sales-page__proforma-info-block">
-                  <span className="sales-page__proforma-info-label">Müşteri</span>
-                  <span className="sales-page__proforma-info-value">{previewSale.musteriAdi}</span>
-                </div>
-                <div className="sales-page__proforma-info-block">
-                  <span className="sales-page__proforma-info-label">Telefon</span>
-                  <span className="sales-page__proforma-info-value">{previewSale.musteriTelefon}</span>
-                </div>
-                {previewSale.musteriEmail && (
+                <div className="sales-page__proforma-info-col">
                   <div className="sales-page__proforma-info-block">
-                    <span className="sales-page__proforma-info-label">E-posta</span>
-                    <span className="sales-page__proforma-info-value">{previewSale.musteriEmail}</span>
+                    <span className="sales-page__proforma-info-label">Müşteri</span>
+                    <span className="sales-page__proforma-info-value">{previewSale.musteriAdi}</span>
                   </div>
-                )}
-                <div className="sales-page__proforma-info-block">
-                  <span className="sales-page__proforma-info-label">Ödeme Yöntemi</span>
-                  <span className="sales-page__proforma-info-value">
-                    {PAYMENT_ICONS[previewSale.odemeYontemi]} {PAYMENT_LABELS[previewSale.odemeYontemi]}
-                  </span>
+                  {previewSale.musteriEmail && (
+                    <div className="sales-page__proforma-info-block">
+                      <span className="sales-page__proforma-info-label">E-posta</span>
+                      <span className="sales-page__proforma-info-value">{previewSale.musteriEmail}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="sales-page__proforma-info-col">
+                  <div className="sales-page__proforma-info-block">
+                    <span className="sales-page__proforma-info-label">Telefon</span>
+                    <span className="sales-page__proforma-info-value">{previewSale.musteriTelefon}</span>
+                  </div>
+                  <div className="sales-page__proforma-info-block">
+                    <span className="sales-page__proforma-info-label">Ödeme Yöntemi</span>
+                    <span className="sales-page__proforma-info-value">
+                      {PAYMENT_ICONS[previewSale.odemeYontemi]} {PAYMENT_LABELS[previewSale.odemeYontemi]}
+                    </span>
+                  </div>
                 </div>
               </div>
 

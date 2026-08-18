@@ -97,8 +97,14 @@ export function LoginForm({ form, onFinish, onForgotPassword, isLoading, loginEr
         />
       )}
 
-      <Form.Item name="email" rules={[{ required: true, message: 'E-posta adresinizi girin' }]}>
-        <Input prefix={<MailOutlined />} type="email" placeholder="E-posta" size="large" />
+      <Form.Item
+        name="email"
+        rules={[
+          { required: true, message: 'E-posta adresinizi girin' },
+          { type: 'email', message: 'Geçerli bir e-posta adresi girin' },
+        ]}
+      >
+        <Input prefix={<MailOutlined />} placeholder="E-posta" size="large" />
       </Form.Item>
 
       <Form.Item name="password" rules={[{ required: true, message: 'Şifrenizi girin' }]}>

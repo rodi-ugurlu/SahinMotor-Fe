@@ -1,4 +1,4 @@
-import type { Product } from '../types/stock';
+import type { Product, StockEntryItem } from '../types/stock';
 
 const now = '06.08.2026 14:30';
 
@@ -54,5 +54,43 @@ export async function deleteProduct(id: string): Promise<void> {
       products = products.filter((p) => p.id !== id);
       resolve();
     }, 300);
+  });
+}
+
+export async function applyStockEntries(entries: StockEntryItem[]): Promise<Product[]> {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const now = new Date().toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const next = [...products];
+      const updated: Product[] = [];
+
+      for (const entry of entries) {
+        if (entry.isNew) {
+          if (!entry.newProductData) {
+            return reject(new Error('Yeni ürün bilgileri eksik'));
+          }
+          const newProduct: Product = {
+            ...entry.newProductData,
+            id: String(Date.now()) + Math.random().toString(36).slice(2, 6),
+            stock: entry.quantity,
+            createdAt: now,
+            updatedAt: now,
+          };
+          next.unshift(newProduct);
+          updated.push(newProduct);
+        } else {
+          const index = next.findIndex((p) => p.id === entry.productId);
+          if (index === -1) {
+            return reject(new Error('Ürün bulunamadı'));
+          }
+          const product = { ...next[index], stock: next[index].stock + entry.quantity, updatedAt: now };
+          next[index] = product;
+          updated.push(product);
+        }
+      }
+
+      products = next;
+      resolve(updated);
+    }, 400);
   });
 }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { message } from 'antd';
-import type { Product, StockFilter } from '../types/stock';
-import { addProduct, deleteProduct, getProducts, updateProduct } from '../services/stockService';
+import type { Product, StockEntryItem, StockFilter } from '../types/stock';
+import { addProduct, applyStockEntries, deleteProduct, getProducts, updateProduct } from '../services/stockService';
 
 type State = 'loading' | 'loaded' | 'empty' | 'error';
 
@@ -24,6 +24,7 @@ interface UseStockReturn {
   handleAdd: (data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   handleUpdate: (id: string, data: Partial<Omit<Product, 'id' | 'createdAt' | 'updatedAt'>>) => Promise<void>;
   handleDelete: (id: string) => Promise<void>;
+  handleStockEntries: (entries: StockEntryItem[]) => Promise<void>;
   retry: () => void;
 }
 
@@ -125,11 +126,29 @@ export function useStock(): UseStockReturn {
     }
   };
 
+  const handleStockEntries = async (entries: StockEntryItem[]) => {
+    try {
+      const updated = await applyStockEntries(entries);
+      setProducts((prev) => {
+        const updatedIds = new Set(updated.map((p) => p.id));
+        const merged = [...updated, ...prev.filter((p) => !updatedIds.has(p.id))];
+        return merged;
+      });
+      setState('loaded');
+      const totalQty = entries.reduce((sum, e) => sum + e.quantity, 0);
+      message.success(`${entries.length} ürüne toplam ${totalQty} adet stok girişi yapıldı`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Stok girişi yapılırken hata oluştu';
+      message.error(msg);
+      throw err;
+    }
+  };
+
   return {
     products, filteredProducts, state, search, filter,
     brandFilter, modelFilter, sizeFilter, colorFilter,
     setSearch, setFilter, setBrandFilter, setModelFilter, setSizeFilter, setColorFilter,
-    handleAdd, handleUpdate, handleDelete,
+    handleAdd, handleUpdate, handleDelete, handleStockEntries,
     retry: fetch,
   };
 }

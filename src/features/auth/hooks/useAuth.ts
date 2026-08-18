@@ -34,7 +34,6 @@ export function useAuth(): UseAuthReturn {
     } catch (err) {
       const messageText = err instanceof Error ? err.message : 'Giriş yapılamadı';
       setError(messageText);
-      message.error(messageText);
     } finally {
       setIsLoading(false);
     }
@@ -50,7 +49,6 @@ export function useAuth(): UseAuthReturn {
     } catch (err) {
       const messageText = err instanceof Error ? err.message : 'Kayıt olunamadı';
       setError(messageText);
-      message.error(messageText);
     } finally {
       setIsLoading(false);
     }
@@ -66,7 +64,6 @@ export function useAuth(): UseAuthReturn {
     } catch (err) {
       const messageText = err instanceof Error ? err.message : 'Başvuru gönderilemedi';
       setError(messageText);
-      message.error(messageText);
     } finally {
       setIsLoading(false);
     }
@@ -82,7 +79,6 @@ export function useAuth(): UseAuthReturn {
 
       const messageText = err instanceof Error ? err.message : 'Şifre sıfırlama talebi başarısız oldu';
       setError(messageText);
-      message.error(messageText);
       return null;
     } finally {
       setIsLoading(false);

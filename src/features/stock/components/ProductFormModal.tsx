@@ -10,9 +10,11 @@ interface ProductFormModalProps {
   editingProduct: Product | null;
   onCancel: () => void;
   onSubmit: (values: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  initialBarcode?: string;
+  hideStockField?: boolean;
 }
 
-export function ProductFormModal({ open, editingProduct, onCancel, onSubmit }: ProductFormModalProps) {
+export function ProductFormModal({ open, editingProduct, onCancel, onSubmit, initialBarcode, hideStockField }: ProductFormModalProps) {
   const [form] = Form.useForm();
   const isEdit = !!editingProduct;
   const [fileList, setFileList] = useState<UploadFile[]>([]);
@@ -28,10 +30,13 @@ export function ProductFormModal({ open, editingProduct, onCancel, onSubmit }: P
         }
       } else {
         form.resetFields();
+        if (initialBarcode) {
+          form.setFieldsValue({ barcode: initialBarcode });
+        }
         setFileList([]);
       }
     }
-  }, [open, editingProduct, form]);
+  }, [open, editingProduct, form, initialBarcode]);
 
   const handleFinish = async (values: Record<string, unknown>) => {
     const imageUrl = fileList.length > 0 && fileList[0].originFileObj
@@ -96,7 +101,7 @@ export function ProductFormModal({ open, editingProduct, onCancel, onSubmit }: P
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
-          <Form.Item name="stock" label="Stok Miktarı" rules={[{ required: true, message: 'Stok miktarı gerekli' }]}>
+          <Form.Item name="stock" label="Stok Miktarı" rules={hideStockField ? [] : [{ required: true, message: 'Stok miktarı gerekli' }]} style={hideStockField ? { display: 'none' } : undefined}>
             <InputNumber min={0} style={{ width: '100%' }} placeholder="0" />
           </Form.Item>
           <Form.Item name="minStock" label="Stok Eşik Değeri" rules={[{ required: true, message: 'Eşik değeri gerekli' }]} tooltip="Bu seviyenin altına düşünce kritik stok uyarısı verilir">

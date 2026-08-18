@@ -25,6 +25,7 @@ import {
 } from '@ant-design/icons';
 import { useStock } from '../hooks/useStock';
 import { ProductFormModal } from '../components/ProductFormModal';
+import { StockEntryDrawer } from '../components/StockEntryDrawer';
 import type { Product } from '../types/stock';
 import './StockPage.css';
 
@@ -36,7 +37,7 @@ export default function StockPage() {
     brandFilter, modelFilter, sizeFilter, colorFilter, products,
     setSearch, setFilter,
     setBrandFilter, setModelFilter, setSizeFilter, setColorFilter,
-    handleAdd, handleUpdate, handleDelete, retry,
+    handleAdd, handleUpdate, handleDelete, handleStockEntries, retry,
   } = useStock();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -46,6 +47,7 @@ export default function StockPage() {
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
   const [formKey, setFormKey] = useState(0);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [stockEntryOpen, setStockEntryOpen] = useState(false);
 
   const brandOptions = useMemo(() => {
     const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))];
@@ -241,6 +243,9 @@ export default function StockPage() {
           <Button type="primary" danger icon={<PlusOutlined />} onClick={openAdd}>
             Yeni Ürün
           </Button>
+          <Button icon={<InboxOutlined />} onClick={() => setStockEntryOpen(true)}>
+            Mal Kabul
+          </Button>
           <Input
             prefix={<SearchOutlined />}
             placeholder="Ürün adı veya barkod ile ara..."
@@ -394,6 +399,13 @@ export default function StockPage() {
         editingProduct={editingProduct}
         onCancel={() => { setModalOpen(false); setEditingProduct(null); }}
         onSubmit={handleSubmit}
+      />
+
+      <StockEntryDrawer
+        open={stockEntryOpen}
+        products={products}
+        onClose={() => setStockEntryOpen(false)}
+        onApply={handleStockEntries}
       />
 
       <Modal
