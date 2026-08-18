@@ -17,6 +17,11 @@ Manages retail sales transactions, customer cart generation, tax calculations, i
   - `GrandTotal` = `Subtotal - DiscountTotal + Tax`
 - **Payment Methods**: `'kart'` (Credit Card), `'nakit'` (Cash), `'havale'` (Bank Transfer).
 - **Status Lifecycle**: `'taslak'` (Draft) ➔ `'beklemede'` (Pending) ➔ `'bitti'` (Completed) or `'iptal'` (Cancelled).
+- **Customer Types**: `'individual'` (Bireysel) / `'company'` (Kurumsal) — form fields switch between TC Kimlik No and VKN/Vergi Dairesi.
+- **Cart Table**: Quantity & discount inputs use Ant Design `InputNumber` with up/down controls; discount input has `%` suffix.
+- **Sales List Filters**: Status Tag filters (Tümü/Tamamlandı/Taslak/İptal), customer name/phone search, and a `RangePicker` (dayjs) calendar popover for date range filtering (`DD.MM.YYYY`).
+- **Proforma Preview**: Two-column info layout — left: Müşteri/E-posta, right: Telefon/Ödeme Yöntemi; print/PDF via `window.print()`.
+- **Barcode Overlay**: Camera-style overlay with manual barcode input; adds product to cart on match.
 
 ---
 
@@ -37,12 +42,19 @@ Manages customer billing information, Turkish identity (TC) / Tax identification
 
 ### Data Attributes
 - `fullName`: Customer full name
-- `tc`: 11-digit Turkish Identity Number
-- `vkn`: 10-digit Tax Identification Number
-- `taxOffice`: Tax Office jurisdiction name
+- `type`: `'individual'` (Bireysel) or `'company'` (Kurumsal)
+- `tc`: 11-digit Turkish Identity Number (individual only)
+- `vkn`: 10-digit Tax Identification Number (company only)
+- `taxOffice`: Tax Office jurisdiction name (company only)
 - `billingAddress`: Complete official billing address string
 - `phone`: Formatted contact phone number
 - `email`: Contact email address
+
+### UI Features
+- **Type Filter**: Tag buttons (Tümü/Bireysel/Kurumsal) instead of Select dropdown.
+- **Search**: Name, phone, TC, VKN, tax office.
+- **Detail Drawer**: Eye icon opens customer detail with Descriptions.
+- **Form Modal**: Radio toggle between Bireysel/Kurumsal switches TC vs VKN fields.
 
 ---
 

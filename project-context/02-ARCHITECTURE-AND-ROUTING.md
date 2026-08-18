@@ -116,7 +116,7 @@ export function useNotifications(): Notification[];
 
 ### 3. Phone & Password Validation Helpers ([`src/shared/validation.ts`](file:///home/just-z/Desktop/SahinMotor-Fe/src/shared/validation.ts))
 - `formatPhoneNumber(value: string)`: Converts raw numbers to `(5XX) XXX XX XX` Turkish format.
-- `validatePasswordRule(_, value: string)`: Ant Design rule validator enforcing minimum 6 characters, uppercase, lowercase, digit, and special character.
+- `validatePasswordRule(_, value: string)`: Ant Design rule validator enforcing minimum 10 characters, uppercase, lowercase, digit, and special character.
 
 ### 4. Base64 Converter ([`src/shared/image.ts`](file:///home/just-z/Desktop/SahinMotor-Fe/src/shared/image.ts))
 - `getBase64(file: File): Promise<string>`: Converts image upload objects to Base64 data URLs for inline previewing and storage.

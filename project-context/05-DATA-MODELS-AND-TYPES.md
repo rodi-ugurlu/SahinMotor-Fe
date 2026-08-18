@@ -26,18 +26,52 @@ export interface LoginCredentials {
 }
 
 // src/features/users/types/users.ts
-export type UserSystemRole = 'SuperAdmin' | 'Admin' | 'Personel' | 'Guest';
+export type UserRole = 'SuperAdmin' | 'Admin' | 'Personel' | 'Guest';
 
-export interface SystemUser {
+export interface User {
   id: string;
   fullName: string;
   email: string;
   password: string;
   photoUrl?: string;
-  role: UserSystemRole;
+  role: UserRole;
   dealerId: string;
   createdAt: string;
 }
+
+export type UserFormValues = {
+  fullName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  photoUrl?: string;
+  role: UserRole;
+  dealerId: string;
+};
+
+export type UserEditFormValues = {
+  fullName: string;
+  email: string;
+  photoUrl?: string;
+  role: UserRole;
+  dealerId: string;
+};
+
+export const USER_ROLES: UserRole[] = ['Admin', 'Personel', 'Guest'];
+
+export const ROLE_LABELS: Record<UserRole, string> = {
+  SuperAdmin: 'Süper Admin',
+  Admin: 'Admin',
+  Personel: 'Personel',
+  Guest: 'Misafir',
+};
+
+export const ROLE_COLORS: Record<UserRole, string> = {
+  SuperAdmin: '#E32727',
+  Admin: '#3B82F6',
+  Personel: '#22C55E',
+  Guest: '#94A3B8',
+};
 ```
 
 ---
@@ -69,6 +103,12 @@ export interface Dealer {
   assignedUserIds: string[];
   createdAt: string;
 }
+
+export type DealerFormValues = {
+  name: string;
+  description: string;
+  logoUrl?: string;
+};
 ```
 
 ---
@@ -134,6 +174,21 @@ export interface Sale {
   createdAt: string;
   updatedAt: string;
 }
+
+// Satış modülü içinde kullanılan hafif müşteri tipi (sales/types/sales.ts)
+export type CustomerType = 'individual' | 'company';
+
+export interface Customer {
+  id: string;
+  fullName: string;
+  type: CustomerType;
+  tc?: string;
+  vkn?: string;
+  taxOffice?: string;
+  billingAddress?: string;
+  phone: string;
+  email?: string;
+}
 ```
 
 ---
@@ -142,17 +197,22 @@ export interface Sale {
 
 ```typescript
 // src/features/customers/types/customers.ts
+export type CustomerType = 'individual' | 'company';
+
 export interface Customer {
   id: string;
   fullName: string;
-  tc: string;
-  vkn: string;
-  taxOffice: string;
+  type: CustomerType;
+  tc?: string;
+  vkn?: string;
+  taxOffice?: string;
   billingAddress: string;
   phone: string;
   email: string;
   createdAt: string;
 }
+
+export type CustomerFormValues = Omit<Customer, 'id' | 'createdAt'>;
 ```
 
 ---

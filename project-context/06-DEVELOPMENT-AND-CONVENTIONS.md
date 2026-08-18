@@ -32,8 +32,9 @@ This document outlines conventions and strict guidelines for AI agents and human
 
 1. **Ant Design Form Integration**: Form instances should be created using `Form.useForm()`.
 2. **Phone Number Inputs**: Always use `formatPhoneNumber` from [`src/shared/validation.ts`](file:///home/just-z/Desktop/SahinMotor-Fe/src/shared/validation.ts) to format phone fields dynamically.
-3. **Password Inputs**: Enforce `validatePasswordRule` for strong password policies.
+3. **Password Inputs**: Enforce `validatePasswordRule` for strong password policies (min 10 chars, uppercase, lowercase, digit, special character).
 4. **Validation Failure Handling**: Display explicit, user-friendly Turkish error messages using Ant Design's `message.error(...)` or `message.success(...)`.
+5. **Error Display Rule**: Do NOT show the same error twice (e.g. both in-form Alert and `message.error` toast). Prefer in-form `Alert` for auth errors; use `message.*` for action feedback (add/update/delete).
 
 ---
 

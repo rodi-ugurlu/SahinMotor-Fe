@@ -10,6 +10,7 @@ The authentication module manages login, registration, password resets, location
 export type UserRole = 'sahin' | 'koman' | 'admin' | null;
 export type AuthRole = 'sahin' | 'koman';
 export type AuthView = 'login' | 'register';
+export type TicketCategory = 'Motor' | 'Elektrik' | 'Hidrolik' | 'Pnömatik' | 'GenelBakim' | 'ECU';
 
 export interface User {
   id: string;
@@ -48,6 +49,10 @@ export interface KomanRegisterRequest {
   terms: boolean;
 }
 ```
+
+### Login Form Behavior
+- Email field uses Ant Design `type: 'email'` rule with Turkish message (`Geçerli bir e-posta adresi girin`); native browser `type="email"` removed to avoid English validation messages.
+- Auth errors are displayed **only** in the in-form `Alert` component (no duplicate `message.error` toasts).
 
 ---
 
