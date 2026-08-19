@@ -25,7 +25,7 @@ import {
 } from '@ant-design/icons';
 import { useStock } from '../hooks/useStock';
 import { ProductFormModal } from '../components/ProductFormModal';
-import { StockEntryDrawer } from '../components/StockEntryDrawer';
+import { StockEntryWorkspace } from '../components/StockEntryWorkspace';
 import type { Product, ProductFormValues } from '../types/stock';
 import './StockPage.css';
 
@@ -223,6 +223,16 @@ export default function StockPage() {
     },
   ];
 
+  if (stockEntryOpen) {
+    return (
+      <StockEntryWorkspace
+        products={products}
+        onClose={() => setStockEntryOpen(false)}
+        onApply={handleStockEntries}
+      />
+    );
+  }
+
   return (
     <div className="stock-page">
       {state === 'error' && (
@@ -400,13 +410,6 @@ export default function StockPage() {
         existingBarcodes={products.map((product) => product.barcode)}
         onCancel={() => { setModalOpen(false); setEditingProduct(null); }}
         onSubmit={handleSubmit}
-      />
-
-      <StockEntryDrawer
-        open={stockEntryOpen}
-        products={products}
-        onClose={() => setStockEntryOpen(false)}
-        onApply={handleStockEntries}
       />
 
       <Modal
