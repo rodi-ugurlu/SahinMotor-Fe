@@ -1,0 +1,125 @@
+.workflow-product-search {
+  width: 100%;
+}
+
+.workflow-product-search__bar {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 7px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  box-shadow: 0 5px 18px rgba(15, 23, 42, 0.05);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.workflow-product-search__bar:hover,
+.workflow-product-search__bar:focus-within {
+  border-color: #E32727;
+  box-shadow: 0 6px 22px rgba(227, 39, 39, 0.1);
+}
+
+.workflow-product-search__bar .ant-input-affix-wrapper {
+  min-width: 0;
+  height: 40px;
+  padding-inline: 10px;
+  font-size: 15px;
+  background: transparent;
+  border: 0;
+  box-shadow: none !important;
+}
+
+.workflow-product-search__bar .ant-input-prefix {
+  margin-inline-end: 8px;
+  color: #64748B;
+  font-size: 17px;
+}
+
+.workflow-product-search__scan {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 40px;
+  flex: 0 0 44px;
+  color: #64748B;
+  font-size: 20px;
+  cursor: pointer;
+  background: #F8FAFC;
+  border: 0;
+  border-left: 1px solid #E2E8F0;
+  border-radius: 10px;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.workflow-product-search__scan:hover {
+  color: #E32727;
+  background: #FFF1F2;
+}
+
+.workflow-product-search__scan:focus-visible {
+  outline: 2px solid #E32727;
+  outline-offset: 2px;
+}
+
+.workflow-product-search__options {
+  margin-top: 10px;
+  overflow: hidden;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+}
+
+.workflow-product-search__option {
+  display: block;
+  width: 100%;
+  padding: 12px 15px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: #FFFFFF;
+  border: 0;
+  border-bottom: 1px solid #F1F5F9;
+  transition: background 0.15s ease, padding-left 0.15s ease;
+}
+
+.workflow-product-search__option:last-child {
+  border-bottom: 0;
+}
+
+.workflow-product-search__option:hover {
+  padding-left: 19px;
+  background: #FFF8F8;
+}
+
+.workflow-product-search__option:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid #E32727;
+  outline-offset: -2px;
+}
+
+.workflow-product-search__empty {
+  margin-top: 10px;
+  padding: 12px 15px;
+  color: #64748B;
+  font-size: 13px;
+  text-align: center;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+}
+
+@media (max-width: 760px) {
+  .workflow-product-search__bar {
+    padding: 5px;
+  }
+
+  .workflow-product-search__bar .ant-input-affix-wrapper,
+  .workflow-product-search__scan {
+    height: 42px;
+  }
+}

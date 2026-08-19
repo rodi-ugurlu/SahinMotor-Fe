@@ -22,6 +22,7 @@ import {
   Typography,
   message,
 } from 'antd';
+import type { InputRef } from 'antd';
 
 import {
   CalendarOutlined,
@@ -42,6 +43,8 @@ import {
 } from '@ant-design/icons';
 import { useSales } from '../hooks/useSales';
 import type { Sale, SaleItem, PaymentMethod, CustomerType } from '../types/sales';
+import { WorkflowSpotlight } from '../../../components/WorkflowSpotlight';
+import { WorkflowProductSearch } from '../../../components/WorkflowProductSearch';
 import './SalesPage.css';
 
 const { Text } = Typography;
@@ -103,7 +106,7 @@ export default function SalesPage() {
   const [barcodeInput, setBarcodeInput] = useState('');
   const [barcodeResult, setBarcodeResult] = useState<{ msg: string; ok: boolean } | null>(null);
   const barcodeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const barcodeInputRef = useRef<any>(null);
+  const barcodeInputRef = useRef<InputRef>(null);
 
   const subtotal = cartItems.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
   const discountTotal = cartItems.reduce((sum, i) => sum + i.discountAmount, 0);
@@ -895,55 +898,41 @@ export default function SalesPage() {
   return (
     <div className="sales-page">
       {cartItems.length === 0 ? (
-        <div className="sales-page__spotlight">
-          <div className="sales-page__spotlight-brand">
-            <div className="sales-page__spotlight-icon">
-              <ShoppingCartOutlined />
-            </div>
-            <div className="sales-page__spotlight-title">Yeni Satış</div>
-            <div className="sales-page__spotlight-sub">
-              Ürün adı ile arama yapın veya barkod okutarak sepete ekleyin
-            </div>
-          </div>
-
-          <div className="sales-page__spotlight-search">
-            <Select
-              key={selectKey}
-              showSearch
-              value={undefined}
-              searchValue={productSearch}
-              placeholder="Ürün adı veya barkod ile arayın..."
-              filterOption={false}
-              onSearch={setProductSearch}
-              onSelect={handleProductSelect}
-              onBlur={() => setProductSearch('')}
-              prefix={<SearchOutlined style={{ color: '#94A3B8', fontSize: 18 }} />}
-              options={filteredProducts.map((p) => ({
-                value: p.id,
-                label: (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: 14 }}>{p.name}</div>
-                      <div style={{ fontSize: 12, color: '#94A3B8' }}>{p.barcode}</div>
-                    </div>
-                    <Text strong style={{ color: '#E32727', fontSize: 15 }}>₺{p.price}</Text>
-                  </div>
-                ),
-              }))}
-              notFoundContent={productSearch ? 'Ürün bulunamadı' : 'Aramak için yazmaya başlayın'}
-              suffixIcon={null}
-            />
-            <button className="sales-page__spotlight-barcode-btn" onClick={openBarcode} title="Barkod Okut">
-              <CameraOutlined />
-            </button>
-          </div>
-
-          <div className="sales-page__spotlight-actions">
+        <WorkflowSpotlight
+          icon={<ShoppingCartOutlined />}
+          title="Yeni Satış"
+          description="Ürün adı ile arama yapın veya barkod okutarak sepete ekleyin"
+          actions={(
             <Button icon={<HistoryOutlined />} onClick={() => setShowSalesList(true)} style={{ borderRadius: 10, height: 42 }}>
               Satışlarım
             </Button>
-          </div>
-        </div>
+          )}
+        >
+          <WorkflowProductSearch
+            value={productSearch}
+            ariaLabel="Satışa ürün eklemek için ara"
+            emptyText="Ürün bulunamadı"
+            onChange={setProductSearch}
+            onSubmit={() => {
+              if (filteredProducts.length === 1) handleProductSelect(filteredProducts[0].id);
+            }}
+            onScan={openBarcode}
+            options={filteredProducts.slice(0, 5).map((product) => ({
+              key: product.id,
+              ariaLabel: `${product.name} ürününü sepete ekle`,
+              onSelect: () => handleProductSelect(product.id),
+              content: (
+                <div className="sales-page__spotlight-option">
+                  <div>
+                    <div className="sales-page__spotlight-option-name">{product.name}</div>
+                    <div className="sales-page__spotlight-option-barcode">{product.barcode}</div>
+                  </div>
+                  <Text strong className="sales-page__spotlight-option-price">₺{product.price}</Text>
+                </div>
+              ),
+            }))}
+          />
+        </WorkflowSpotlight>
       ) : (
         <div className="sales-page__workspace">
           <div className="sales-page__workspace-left">

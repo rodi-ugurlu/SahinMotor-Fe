@@ -1,70 +1,86 @@
-# 01 - Project Overview & Tech Stack
+# 01 — Proje Özeti
 
-## 📌 Executive Summary
+## Ürün nedir?
 
-`SahinMotor-Fe` is a modern, enterprise-grade Web Application built for the management of motorcycle sales, servicing, equipment retail, dealer management, customer management, inventory control, and financial transaction auditing across multi-brand dealer ecosystems (specifically **Şahin Motor** and **Koman Motor**).
+Şahin Motor Frontend; satış, stok, müşteri, bayi, kullanıcı ve işlem görünümü sunan bir yönetim paneli prototipidir. Uygulama gerçek bir API'ye bağlı değildir; tüm iş verileri tarayıcı belleğinde çalışan mock servislerden gelir.
 
-The application provides a seamless single-page application (SPA) experience with responsive navigation, role-based user authorization, real-time-like in-memory notifications, transaction history, stock critical alert tracking, and interactive reporting dashboards.
+Mevcut ürün kapsamı:
 
----
+- Demo kimlik bilgileriyle giriş
+- Bayi/işletme seçimi
+- Sepet → müşteri → proforma/önizleme → satış tamamlama akışı
+- Stok ürünlerini listeleme, filtreleme ve CRUD işlemleri
+- Toplu ve kontrollü **Mal Kabul** ve **Atık Ürün** stok hareketleri
+- Bireysel/kurumsal müşteri CRUD işlemleri
+- Bayi CRUD ve kullanıcı atama işlemleri
+- Kullanıcı CRUD ve parola sıfırlama
+- Satış, stok ve aktivite verilerini bir araya getiren işlemler görünümü
 
-## 🏢 Business Domain & Brand Structure
+Kaynakta bulunup bugün navigasyona dahil olmayan alanlar: dashboard, bağımsız raporlar ve bağımsız log ekranları. Kayıt formları da kaynakta vardır fakat güncel auth sayfası yalnızca giriş formunu render eder.
 
-### 1. Şahin Motor
-- **Focus**: Brand-new & pre-owned motorcycle sales, maintenance, repair services, replacement parts, ECU programming, hydraulic/pneumatic service management.
-- **Audience**: End-user motorcycle buyers, service customers, fleet owners, mechanics.
+## Teknoloji yığını
 
-### 2. Koman Motor
-- **Focus**: Riding accessories, helmets (e.g. LS2, AGV), jackets, gloves, boots, protective equipment, motorcycle gear distribution.
-- **Audience**: B2B dealers, retail equipment buyers, accessory shops.
+| Katman | Canlı sürüm / seçim |
+|---|---|
+| UI runtime | React `19.2.8`, React DOM `19.2.8` |
+| Dil | TypeScript `~6.0.2` |
+| Build | Vite `8.2.0`, `@vitejs/plugin-react` `6.0.4` |
+| Routing | React Router DOM `7.18.2` |
+| UI kütüphanesi | Ant Design `6.5.3`, Türkçe locale |
+| İkonlar | `@ant-design/icons` kodda doğrudan import edilir; paket şu an `antd` üzerinden transitif gelir |
+| Lint | ESLint `10.8.0`, TypeScript ESLint, React Hooks ve React Refresh kuralları |
+| Paket yöneticisi | npm (`package-lock.json`) |
 
-### 3. Multi-Dealer Platform
-- Users log in, select their active business/dealer (e.g., *Şahin Motor*, *Koman Motor*), and navigate to dealer-scoped administrative views.
+`package.json` sürümü `0.0.2`, paket tipi ESM'dir. React Compiler etkin değildir. State yönetimi için Redux/Zustand/Context tabanlı global store yoktur.
 
----
+## Çalışma modeli
 
-## 🛠 Technology Stack & Version Matrix
+Ana veri akışı çoğu feature'da şöyledir:
 
-| Layer | Technology | Version | Purpose |
-| :--- | :--- | :--- | :--- |
-| **Framework** | React | `^19.2.8` | UI Library & Component Tree |
-| **Language** | TypeScript | `~6.0.2` | Type Safety & Strict Interfaces |
-| **Build Tool** | Vite | `^8.2.0` | Dev Server & Lightning Fast HMR |
-| **Routing** | React Router DOM | `^7.18.2` | Data Router / Declarative Browser Routing |
-| **UI Kit** | Ant Design (`antd`) | `^6.5.3` | Form Controls, Modals, Tables, Cards, Badges, Typography |
-| **Icons** | `@ant-design/icons` | Latest | Crisp Vector UI Icons |
-| **Styling** | Vanilla CSS / BEM | CSS3 | Component & Layout Specific Modular Styling |
-| **Typography** | Google Fonts | `Poppins` | Clean Turkish Character Set Typography |
-| **State Management** | React Hooks + `useSyncExternalStore` | Native React 19 | Lightweight, decoupled global notifications & local state |
-
----
-
-## ⚙️ NPM Scripts & Environment Setup
-
-Commands defined in [`package.json`](file:///home/just-z/Desktop/SahinMotor-Fe/package.json):
-
-```bash
-# Start Vite Development Server
-npm run dev
-
-# Type check & Production Build (Vite + TypeScript)
-npm run build
-
-# Run ESLint across code base
-npm run lint
-
-# Preview Production Build locally
-npm run preview
+```text
+Page / Component → custom hook → mock service → modül içi dizi
 ```
 
----
+- Servis gecikmeleri yaklaşık 200–800 ms arasında `setTimeout` ile simüle edilir.
+- CRUD yapan servisler veriyi yalnızca ilgili ES modülünün belleğinde değiştirir.
+- Tarayıcı yenilendiğinde veya geliştirme sunucusu yeniden yüklendiğinde mock veri sıfırlanır.
+- Ağ isteği, API base URL, token saklama veya `.env` tüketimi yoktur.
+- Feature hook'ları loading/loaded/error; bazıları ayrıca empty durumunu yönetir.
 
-## 🎯 Core Capabilities & Value Delivery
+## İşletme sahipliği
 
-1. **Authentication & Multi-Dealer Switcher**: Dynamic branded login screens, dealer selection grid with instant layout re-branding.
-2. **Sales POS & Invoice Engine**: Multi-item sales cart, automated discount calculation (percentage & fixed), 20% KDV tax computation, payment method selection (Cash, Credit Card, Bank Wire).
-3. **Inventory & Stock Management**: Product barcode scanning, brand/model size matrix, critical stock threshold alerts (`stock <= minStock`).
-4. **Customer CRM**: Billing addresses, Turkish TC/VKN tax identification, formatted phone numbers.
-5. **Role-Based User Management**: SuperAdmin, Admin, Personel, and Guest permissions with color-coded role tags.
-6. **Audit & Log Tracking**: Comprehensive event history, user action logging, IP logging, before/after field changes.
-7. **Analytics & Reports**: Daily, weekly, monthly sales breakdown, growth metrics, top revenue products ranking.
+Route yapısının merkezi `/:businessId` parametresidir. Ancak kapsam uygulama genelinde eşit uygulanmaz:
+
+- **Stok:** `Product.dealerId` üzerinden seçili işletmeye gerçekten filtrelenir; yeni ürün, Mal Kabul ve Atık Ürün işlemleri seçili `businessId` ile uygulanır.
+- **Layout ve işletme adı:** bayi servisi içinden `businessId` ile çözülür.
+- **Satış:** route parametresine göre filtrelenmez; yeni satışlarda `bayiId: 'd1'` ve `personelId: 'u1'` sabittir.
+- **Müşteri, bayi, kullanıcı, dashboard, rapor ve log:** seçili işletmeye göre servis seviyesinde kapsamlanmaz.
+- **İşlemler:** stok ve satış için işletme filtresi dener; eşleşme yoksa tüm veriye geri döner. Rapor ve log verileri işletme kapsamlı değildir.
+
+Bu nedenle `businessId` bugün eksiksiz bir tenant izolasyonu veya güvenlik sınırı değildir.
+
+## Veri bütünlüğü sınırları
+
+Feature servisleri birbirinden bağımsız mock veri setleri taşır:
+
+- Satış ürünleri, stok ürünleriyle aynı koleksiyon değildir; satış tamamlanınca stok azalmaz.
+- Satış ekranındaki müşteri seçimi, satış servisine ait müşteri listesini kullanır; müşteri CRUD servisiyle otomatik senkron değildir.
+- Satış sırasında girilen yeni müşteri bilgisi müşteri servisine kaydedilmez.
+- Rapor, dashboard ve log verileri canlı CRUD işlemlerinden türetilmez.
+- Bildirim store'u vardır fakat kod tabanında `addNotification` çağıran üretici yoktur.
+
+## Kimlik doğrulama ve yetkilendirme gerçeği
+
+- Tek geçerli demo kombinasyonu `test@test.com` / `Test123!` değeridir.
+- `/`, `/sahin/login` ve `/koman/login` aynı `SahinLogin` bileşenine gider.
+- Güncel auth sayfası rolü her zaman `sahin` olarak login servisine yollar.
+- Kullanıcı bellekte tutulur; refresh sonrası oturum korunmaz.
+- Korumalı route, token, izin kontrolü veya rol bazlı erişim uygulaması yoktur.
+- Kullanıcı rollerinin UI'da görünmesi yetkilendirme uygulandığı anlamına gelmez.
+
+## Bugünkü kalite sınırı
+
+- TypeScript derlemesi ve Vite production build ana çalışabilirlik kontrolüdür.
+- Unit, integration veya end-to-end test dosyası ve test script'i yoktur.
+- 19 Ağustos 2026 denetiminde `npm run lint`, mevcut kaynaklarda 9 hata vermektedir: effect içi senkron state çağrıları, unused parametreler ve bir Fast Refresh export ihlali. Değişiklikler dar kapsamlı lint/build ile ayrıca doğrulanmalıdır.
+- Profil, parola güncelleme, log dışa aktarma ve bazı rapor aksiyonları kalıcı/gerçek bir backend işlemi değildir.

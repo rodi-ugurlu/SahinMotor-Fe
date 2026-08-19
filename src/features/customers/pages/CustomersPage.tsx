@@ -40,8 +40,8 @@ const TYPE_LABELS: Record<CustomerType, string> = {
 };
 
 const TYPE_COLORS: Record<CustomerType, string> = {
-  individual: '#22C55E',
-  company: '#8B5CF6',
+  individual: 'var(--color-success-500)',
+  company: 'var(--color-purple-500)',
 };
 
 export default function CustomersPage() {
@@ -181,7 +181,7 @@ export default function CustomersPage() {
       <div className="customers-page__top-bar">
         <div className="customers-page__title-row">
           <h1 className="customers-page__title">Müşteriler</h1>
-          {state === 'loaded' && <Badge count={filteredCustomers.length} color="#E32727" />}
+          {state === 'loaded' && <Badge count={filteredCustomers.length} color="var(--color-brand-500)" />}
         </div>
         <div className="customers-page__actions">
           <Button type="primary" danger icon={<PlusOutlined />} onClick={openAdd}>
@@ -200,22 +200,19 @@ export default function CustomersPage() {
 
       <div className="customers-page__filter-row">
         <Tag
-          color={typeFilter === 'all' ? 'blue' : 'default'}
-          style={{ cursor: 'pointer', padding: '4px 12px', fontSize: 13 }}
+          className={`customers-page__type-filter customers-page__type-filter--all${typeFilter === 'all' ? ' is-active' : ''}`}
           onClick={() => setTypeFilter('all')}
         >
           Tümü
         </Tag>
         <Tag
-          color={typeFilter === 'individual' ? 'blue' : 'default'}
-          style={{ cursor: 'pointer', padding: '4px 12px', fontSize: 13 }}
+          className={`customers-page__type-filter customers-page__type-filter--individual${typeFilter === 'individual' ? ' is-active' : ''}`}
           onClick={() => setTypeFilter('individual')}
         >
           Bireysel
         </Tag>
         <Tag
-          color={typeFilter === 'company' ? 'blue' : 'default'}
-          style={{ cursor: 'pointer', padding: '4px 12px', fontSize: 13 }}
+          className={`customers-page__type-filter customers-page__type-filter--company${typeFilter === 'company' ? ' is-active' : ''}`}
           onClick={() => setTypeFilter('company')}
         >
           Kurumsal
@@ -223,7 +220,7 @@ export default function CustomersPage() {
       </div>
 
       {state === 'loading' && (
-        <div style={{ background: '#fff', borderRadius: 12, padding: 24 }}>
+        <div style={{ background: 'var(--color-white)', borderRadius: 12, padding: 24 }}>
           <Skeleton active paragraph={{ rows: 8 }} />
         </div>
       )}
@@ -244,7 +241,7 @@ export default function CustomersPage() {
           dataSource={filteredCustomers}
           rowKey="id"
           pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (_t, range) => `Bu sayfada ${range[0]}-${range[1]} gösteriliyor` }}
-          style={{ background: '#fff', borderRadius: 12 }}
+          style={{ background: 'var(--color-white)', borderRadius: 12 }}
           locale={{ emptyText: 'Aramanızla eşleşen müşteri bulunamadı' }}
           scroll={{ x: 600 }}
         />
@@ -270,12 +267,18 @@ export default function CustomersPage() {
                 form.resetFields();
               }}
               disabled={!!editingCustomer}
-              style={{ display: 'flex', gap: 10, width: '100%' }}
+              className="customers-page__type-selector"
             >
-              <Radio.Button value="individual" style={{ flex: 1, textAlign: 'center', height: 44, lineHeight: '44px', borderRadius: 10, fontSize: 14, fontWeight: 500 }}>
+              <Radio.Button
+                value="individual"
+                className="customers-page__type-option customers-page__type-option--individual"
+              >
                 Bireysel
               </Radio.Button>
-              <Radio.Button value="company" style={{ flex: 1, textAlign: 'center', height: 44, lineHeight: '44px', borderRadius: 10, fontSize: 14, fontWeight: 500 }}>
+              <Radio.Button
+                value="company"
+                className="customers-page__type-option customers-page__type-option--company"
+              >
                 Kurumsal
               </Radio.Button>
             </Radio.Group>
@@ -358,7 +361,7 @@ export default function CustomersPage() {
               <ShoppingCartOutlined style={{ marginRight: 8 }} />
               Alışveriş Geçmişi
             </Title>
-            <div style={{ color: '#94A3B8', textAlign: 'center', padding: 24 }}>
+            <div style={{ color: 'var(--color-neutral-400)', textAlign: 'center', padding: 24 }}>
               Alışveriş geçmişi yakında eklenecek
             </div>
           </>

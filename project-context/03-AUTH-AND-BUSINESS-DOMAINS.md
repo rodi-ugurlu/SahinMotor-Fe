@@ -1,83 +1,106 @@
-# 03 - Auth & Business Domains
+# 03 — Kimlik Doğrulama ve İşletme Alanı
 
-## 🔐 Authentication Module (`src/features/auth/`)
+## Aktif giriş akışı
 
-The authentication module manages login, registration, password resets, location datasets, and service specialty classifications.
+Aktif render zinciri:
 
-### Core Types (`src/features/auth/types/auth.ts`)
-
-```typescript
-export type UserRole = 'sahin' | 'koman' | 'admin' | null;
-export type AuthRole = 'sahin' | 'koman';
-export type AuthView = 'login' | 'register';
-export type TicketCategory = 'Motor' | 'Elektrik' | 'Hidrolik' | 'Pnömatik' | 'GenelBakim' | 'ECU';
-
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: UserRole;
-}
-
-export interface LoginCredentials {
-  email: string;
-  password: string;
-}
-
-export interface SahinRegisterRequest {
-  firstName: string;
-  lastName: string;
-  companyName: string;
-  city: string;
-  district: string;
-  email: string;
-  phone: string;
-  password: string;
-  confirmPassword: string;
-  terms: boolean;
-}
-
-export interface KomanRegisterRequest {
-  companyName: string;
-  contactName: string;
-  email: string;
-  phone: string;
-  city: string;
-  district: string;
-  password: string;
-  confirmPassword: string;
-  terms: boolean;
-}
+```text
+SahinLogin
+  → AnimatedAuthPage
+    → LoginForm
+      → useAuth.login('sahin', credentials)
+        → loginWithCredentials
+          → /select-business
 ```
 
-### Login Form Behavior
-- Email field uses Ant Design `type: 'email'` rule with Turkish message (`Geçerli bir e-posta adresi girin`); native browser `type="email"` removed to avoid English validation messages.
-- Auth errors are displayed **only** in the in-form `Alert` component (no duplicate `message.error` toasts).
+`/`, `/sahin/login` ve `/koman/login` aynı zincire girer. Route adı Koman olsa bile `AnimatedAuthPage` rolü sabit olarak `sahin` gönderir.
 
----
+Geçerli demo bilgileri:
 
-## 🔑 Demo Authentication Credentials
+```text
+E-posta: test@test.com
+Şifre:   Test123!
+```
 
-The auth service ([`authService.ts`](file:///home/just-z/Desktop/SahinMotor-Fe/src/features/auth/services/authService.ts)) contains built-in mock validation logic:
+Servis 800 ms gecikme simüle eder. Başarılı kullanıcı `{ id: '1', email, name: 'Test Müşteri', role: 'sahin' }` olur ve `/select-business` açılır. Hatalı girişte “E-posta adresi veya şifre hatalı.” mesajı hook state'ine yazılır.
 
-- **Demo Email**: `test@test.com`
-- **Demo Password**: `Test123!`
-- **Behavior**:
-  - Logging in with role `'sahin'` returns user `{ name: 'Test Müşteri', role: 'sahin' }`.
-  - Logging in with role `'koman'` returns user `{ name: 'Test Bayi', role: 'koman' }`.
-  - On successful login, user is routed to `/select-business`.
-  - **Şifremi Unuttum (Forgot Password)**: Clicking the link on the login page validates the email input inline without navigating away. If invalid, displays `"Geçici şifrenizi gönderebilmemiz için mail adresinizi giriniz."`. If valid, triggers temporary password request and displays `"Bu maille kayıtlı bir hesabınız varsa geçici şifreniz gönderilmiştir."`.
+## Gerçek güvenlik sınırı
 
----
+Bu akış yalnızca UI prototipidir:
 
-## 🏢 Business & Dealer Switcher Domain (`src/features/business/`)
+- Token/cookie/session oluşturulmaz.
+- Kullanıcı global context'e veya kalıcı depoya yazılmaz.
+- Sayfa yenilenince `useAuth` state'i kaybolur.
+- `/select-business` ve `/:businessId/*` route'ları doğrudan açılabilir.
+- Rol ve izinler route veya aksiyon seviyesinde doğrulanmaz.
+- Logout yalnızca `/` adresine navigate eder.
 
-After logging in, users arrive at [`BusinessSelectionPage`](file:///home/just-z/Desktop/SahinMotor-Fe/src/features/business/pages/BusinessSelectionPage.tsx), which loads registered dealers via `businessService.getBusinesses()` (mapped directly from `dealersService.getDealers()`).
+## Şifre sıfırlama
 
-### Business Card Entity (`src/features/business/types/business.ts`)
+`LoginForm` içindeki unutulan parola akışı `requestPasswordReset(email)` çağırır. Servis e-postayı kontrol etmeden 500 ms sonra genel bir bildirim metni döndürür. E-posta gönderimi veya parola değişikliği yoktur.
 
-```typescript
-export interface Business {
+## Kaynakta bulunan fakat aktif olmayan kayıt akışları
+
+`SahinRegisterForm`, `KomanRegisterForm`, `ExpertiseTagInput`, `registerSahin`, `registerKoman` ve hook wrapper'ları kaynakta bulunur. Ancak `AnimatedAuthPage` bugün yalnızca `LoginForm` render ettiği için kullanıcı bu formlara ulaşamaz.
+
+Ek teknik uyumsuzluklar:
+
+- Kayıt servisleri verilen hesabı kalıcı bir store'a eklemez.
+- Hook, kayıt sonrası yeni bilgilerle otomatik login dener; login servisi yalnızca demo bilgilerini kabul ettiği için bu giriş başarısız olur.
+- `SahinRegisterForm` uzmanlık etiketleri toplar; `SahinRegisterRequest` ve `registerSahin` servis parametreleri bu alanı içermez.
+- `AuthView = 'login' | 'register'` tipi vardır ancak güncel sayfa view değiştirmez.
+
+## Auth tipleri
+
+- `AuthRole`: `'sahin' | 'koman'`
+- Auth `UserRole`: `'sahin' | 'koman' | 'admin' | null`
+- `User`: `id`, `email`, `name`, `role`
+- `LoginCredentials`: `email`, `password`
+- `TicketCategory`: Motor, Elektrik, Hidrolik, Pnömatik, GenelBakim, ECU
+
+Bu auth rolleri, kullanıcı yönetimi modülündeki `SuperAdmin | Admin | Personel | Guest` rolleriyle ayrı tip sistemleridir.
+
+## Lokasyon ve uzmanlık yardımcıları
+
+`src/features/auth/lib/locations.ts`:
+
+- 21 şehir ve her şehir için seçilmiş ilçe listesi içerir.
+- `cities`, sözlüğün key listesidir.
+- `districtsForCity`, `firstDistrictForCity` ve tekrarları temizleyen `normalizeDistrictList` export edilir.
+- Liste Türkiye'nin eksiksiz idari veri seti değildir.
+
+`src/features/auth/lib/serviceExpertise.ts`:
+
+- 6 servis uzmanlık kategorisi içerir.
+- 49 önerilen serbest uzmanlık etiketi içerir.
+- Türkçe küçük harfe/arama metnine normalizasyon ve kategori etiketi çözümleme yardımcıları sağlar.
+
+## İşletme seçimi
+
+```text
+/select-business
+  → useBusinesses
+    → businessService.getBusinesses
+      → dealersService.getDealers
+        → Dealer verisini Business görünümüne map et
+```
+
+İki başlangıç bayi kaydı vardır (`d1`, `d2`). Aynı runtime içinde bayi servisinde yapılan değişiklikler işletme seçimine yansır; refresh sonrası sıfırlanır.
+
+Ekranın aktif davranışı:
+
+- Header kullanıcı adı/avatarı sabit `Zeynel` / `Z` değeridir; auth user state'inden gelmez.
+- Loading, error/retry, empty ve loaded durumları vardır.
+- İşletme seçimi `/${business.id}/sales` adresine gider.
+- Çıkış `/` adresine yönlendirir.
+- `Business.description` type ve mapping'de vardır; kartın güncel görsel sunumunda temel kimlik ad/logo üzerinden kurulur.
+
+## İşletme ve bayi ilişkisi
+
+`Business`, `Dealer` modelinin salt seçim kartı görünümüdür:
+
+```ts
+interface Business {
   id: string;
   name: string;
   description: string;
@@ -85,37 +108,10 @@ export interface Business {
 }
 ```
 
-### Business Card UI Component (`BusinessCard.tsx`)
-- Renders avatar with image or initial letter.
-- Clicking "Yönet" navigates to `/:businessId/sales`.
+Route parametresi `businessId`, stok modülünde `dealerId` karşılığı olarak kullanılır. Bu eşitlik diğer tüm feature'larda aynı titizlikle uygulanmadığı için çoklu işletme izolasyonu tamamlanmış değildir.
 
----
+## Profil ve parola modalları
 
-## 📍 Geographical Datasets (`src/features/auth/lib/locations.ts`)
-
-Includes a complete dictionary of **20 Major Turkish Cities** and their respective districts:
-- **Cities Supported**: Adana, Ankara, Antalya, Bursa, Denizli, Diyarbakır, Eskişehir, Gaziantep, Hatay, İstanbul (39 districts), İzmir, Kayseri, Kocaeli, Konya, Malatya, Manisa, Mersin, Sakarya, Samsun, Tekirdağ, Trabzon.
-- **Helper Functions**:
-  - `districtsForCity(city?: string)`: Returns string array of districts.
-  - `firstDistrictForCity(city?: string)`: Helper to set default district values.
-  - `normalizeDistrictList(values: string[])`: Trims & dedupes district arrays.
-
----
-
-## 🛠 Service Specialties & Tags (`src/features/auth/lib/serviceExpertise.ts`)
-
-Used for dealer/service categorization:
-
-### Categories (`TicketCategory`)
-1. **Motor**: Motor repair & rebuild.
-2. **Elektrik**: Electrical & wiring.
-3. **Hidrolik**: Hydraulic systems.
-4. **Pnömatik**: Pneumatic systems.
-5. **GenelBakim**: General periodic maintenance.
-6. **ECU**: ECU remapping & electronics software.
-
-### Suggested Expertise Tag List (`suggestedExpertiseTags`)
-Contains 50+ normalized Turkish motorcycle tags (e.g. *motor, şanzıman, debriyaj, fren, enjeksiyon, kask, zincir, buji, radyatör, rot balans, kam mili*).
-Includes normalization helpers:
-- `normalizeExpertiseTag(value: string)`
-- `normalizeSearchText(value: string)`: Replaces Turkish characters (`ı` -> `i`, `ğ` -> `g`, `ü` -> `u`, `ş` -> `s`, `ö` -> `o`, `ç` -> `c`) for fast, non-diacritic search indexing.
+- `ProfileModal`: ad soyad, e-posta ve tek görsel alır; görseli base64'e çevirir. Sonuç yalnızca `DashboardLayout` state'ini günceller.
+- `PasswordModal`: yeni parola + tekrar alanı içerir; yalnızca minimum 10 karakter ve eşleşme kontrolü yapar. Layout callback'i parolayı kullanmadan modalı kapatır.
+- Bu iki akış kullanıcı servisine veya auth servisine bağlı değildir.

@@ -1,12 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import {
   Alert,
   Badge,
   Button,
   Input,
   Modal,
-  Popover,
-  Select,
   Skeleton,
   Space,
   Table,
@@ -17,7 +15,6 @@ import {
 import {
   DeleteOutlined,
   EditOutlined,
-  FilterOutlined,
   InboxOutlined,
   PlusOutlined,
   ReloadOutlined,
@@ -25,7 +22,8 @@ import {
 } from '@ant-design/icons';
 import { useStock } from '../hooks/useStock';
 import { ProductFormModal } from '../components/ProductFormModal';
-import { StockEntryWorkspace } from '../components/StockEntryWorkspace';
+import { StockEntryDrawer } from '../components/StockEntryDrawer';
+import { WasteProductDrawer } from '../components/WasteProductDrawer';
 import type { Product, ProductFormValues } from '../types/stock';
 import './StockPage.css';
 
@@ -34,10 +32,8 @@ const { Text } = Typography;
 export default function StockPage() {
   const {
     filteredProducts, state, search, filter,
-    brandFilter, modelFilter, sizeFilter, colorFilter, products,
-    setSearch, setFilter,
-    setBrandFilter, setModelFilter, setSizeFilter, setColorFilter,
-    handleAdd, handleUpdate, handleDelete, handleStockEntries, retry,
+    products, setSearch, setFilter,
+    handleAdd, handleUpdate, handleDelete, handleStockEntries, handleWasteEntries, retry,
   } = useStock();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -46,30 +42,8 @@ export default function StockPage() {
   const [hoveredImage, setHoveredImage] = useState<string | null>(null);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
   const [formKey, setFormKey] = useState(0);
-  const [filterOpen, setFilterOpen] = useState(false);
   const [stockEntryOpen, setStockEntryOpen] = useState(false);
-
-  const brandOptions = useMemo(() => {
-    const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))];
-    return brands.map((b) => ({ value: b, label: b }));
-  }, [products]);
-
-  const modelOptions = useMemo(() => {
-    const models = [...new Set(products.map((p) => p.model).filter(Boolean))];
-    return models.map((m) => ({ value: m, label: m }));
-  }, [products]);
-
-  const sizeOptions = useMemo(() => {
-    const sizes = [...new Set(products.map((p) => p.size).filter(Boolean))];
-    return sizes.map((s) => ({ value: s, label: s }));
-  }, [products]);
-
-  const colorOptions = useMemo(() => {
-    const colors = [...new Set(products.map((p) => p.color).filter(Boolean))];
-    return colors.map((c) => ({ value: c, label: c }));
-  }, [products]);
-
-  const activeFilterCount = [brandFilter, modelFilter, sizeFilter, colorFilter].filter(Boolean).length;
+  const [wasteProductOpen, setWasteProductOpen] = useState(false);
 
   const openAdd = () => {
     setEditingProduct(null);
@@ -155,6 +129,8 @@ export default function StockPage() {
       dataIndex: 'brand',
       key: 'brand',
       width: 100,
+      sorter: (a: Product, b: Product) => a.brand.localeCompare(b.brand, 'tr'),
+      showSorterTooltip: { title: 'Alfabetik sırala (A-Z / Z-A)' },
       render: (v: string) => <Text>{v}</Text>,
     },
     {
@@ -202,8 +178,8 @@ export default function StockPage() {
       align: 'center' as const,
       sorter: (a: Product, b: Product) => a.stock - b.stock,
       render: (v: number, record: Product) => {
-        const color = v <= record.minStock ? '#E32727' : '#22C55E';
-        return <Text strong style={{ color, fontSize: 15 }}>{v}</Text>;
+        const stockState = v <= record.minStock ? 'critical' : 'normal';
+        return <Text strong className={`stock-page__stock-value stock-page__stock-value--${stockState}`}>{v}</Text>;
       },
     },
     {
@@ -223,16 +199,6 @@ export default function StockPage() {
     },
   ];
 
-  if (stockEntryOpen) {
-    return (
-      <StockEntryWorkspace
-        products={products}
-        onClose={() => setStockEntryOpen(false)}
-        onApply={handleStockEntries}
-      />
-    );
-  }
-
   return (
     <div className="stock-page">
       {state === 'error' && (
@@ -247,11 +213,14 @@ export default function StockPage() {
       <div className="stock-page__top-bar">
         <div className="stock-page__title-row">
           <h1 className="stock-page__title">Stok Yönetimi</h1>
-          {state === 'loaded' && <Badge count={filteredProducts.length} color="#E32727" overflowCount={999} />}
+          {state === 'loaded' && <Badge count={filteredProducts.length} color="var(--color-brand-500)" overflowCount={999} />}
         </div>
         <div className="stock-page__actions">
           <Button type="primary" danger icon={<InboxOutlined />} onClick={() => setStockEntryOpen(true)}>
             Mal Kabul
+          </Button>
+          <Button danger icon={<DeleteOutlined />} onClick={() => setWasteProductOpen(true)}>
+            Atık Ürün
           </Button>
           <Button icon={<PlusOutlined />} onClick={openAdd}>
             Yeni Ürün
@@ -269,105 +238,27 @@ export default function StockPage() {
 
       <div className="stock-page__filter-row">
         <Tag
-          color={filter === 'all' ? 'blue' : 'default'}
-          style={{ cursor: 'pointer', padding: '4px 12px', fontSize: 13 }}
+          className={`stock-page__status-filter stock-page__status-filter--all${filter === 'all' ? ' is-active' : ''}`}
           onClick={() => setFilter('all')}
         >
           Tümü
         </Tag>
         <Tag
-          color={filter === 'critical' ? 'red' : 'default'}
-          style={{ cursor: 'pointer', padding: '4px 12px', fontSize: 13 }}
+          className={`stock-page__status-filter stock-page__status-filter--critical${filter === 'critical' ? ' is-active' : ''}`}
           onClick={() => setFilter('critical')}
         >
           Kritik Stok
         </Tag>
         <Tag
-          color={filter === 'normal' ? 'green' : 'default'}
-          style={{ cursor: 'pointer', padding: '4px 12px', fontSize: 13 }}
+          className={`stock-page__status-filter stock-page__status-filter--normal${filter === 'normal' ? ' is-active' : ''}`}
           onClick={() => setFilter('normal')}
         >
           Normal
         </Tag>
-        <Popover
-          open={filterOpen}
-          onOpenChange={setFilterOpen}
-          trigger="click"
-          placement="bottomLeft"
-          content={
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 200 }}>
-              <div>
-                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4, display: 'block' }}>Marka</Text>
-                <Select
-                  value={brandFilter || undefined}
-                  onChange={(v) => setBrandFilter(v ?? '')}
-                  placeholder="Tümü"
-                  allowClear
-                  style={{ width: '100%' }}
-                  options={brandOptions}
-                />
-              </div>
-              <div>
-                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4, display: 'block' }}>Model</Text>
-                <Select
-                  value={modelFilter || undefined}
-                  onChange={(v) => setModelFilter(v ?? '')}
-                  placeholder="Tümü"
-                  allowClear
-                  style={{ width: '100%' }}
-                  options={modelOptions}
-                />
-              </div>
-              <div>
-                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4, display: 'block' }}>Beden</Text>
-                <Select
-                  value={sizeFilter || undefined}
-                  onChange={(v) => setSizeFilter(v ?? '')}
-                  placeholder="Tümü"
-                  allowClear
-                  style={{ width: '100%' }}
-                  options={sizeOptions}
-                />
-              </div>
-              <div>
-                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4, display: 'block' }}>Renk</Text>
-                <Select
-                  value={colorFilter || undefined}
-                  onChange={(v) => setColorFilter(v ?? '')}
-                  placeholder="Tümü"
-                  allowClear
-                  style={{ width: '100%' }}
-                  options={colorOptions}
-                />
-              </div>
-              <Button
-                size="small"
-                onClick={() => {
-                  setBrandFilter('');
-                  setModelFilter('');
-                  setSizeFilter('');
-                  setColorFilter('');
-                }}
-                style={{ borderRadius: 8 }}
-              >
-                Filtreleri Temizle
-              </Button>
-            </div>
-          }
-        >
-          <Button
-            type="primary"
-            danger
-            icon={<FilterOutlined />}
-            style={{ borderRadius: 8 }}
-          >
-            Filtrele{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
-          </Button>
-        </Popover>
       </div>
 
       {state === 'loading' && (
-        <div style={{ background: '#fff', borderRadius: 12, padding: 24 }}>
+        <div style={{ background: 'var(--color-white)', borderRadius: 12, padding: 24 }}>
           <Skeleton active paragraph={{ rows: 8 }} />
         </div>
       )}
@@ -388,7 +279,7 @@ export default function StockPage() {
           dataSource={filteredProducts}
           rowKey="id"
           pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (_total, range) => `Bu sayfada ${range[0]}-${range[1]} gösteriliyor` }}
-          style={{ background: '#fff', borderRadius: 12 }}
+          style={{ background: 'var(--color-white)', borderRadius: 12 }}
           locale={{ emptyText: 'Aramanızla eşleşen ürün bulunamadı' }}
           scroll={{ x: 1100 }}
         />
@@ -410,6 +301,20 @@ export default function StockPage() {
         existingBarcodes={products.map((product) => product.barcode)}
         onCancel={() => { setModalOpen(false); setEditingProduct(null); }}
         onSubmit={handleSubmit}
+      />
+
+      <StockEntryDrawer
+        open={stockEntryOpen}
+        products={products}
+        onClose={() => setStockEntryOpen(false)}
+        onApply={handleStockEntries}
+      />
+
+      <WasteProductDrawer
+        open={wasteProductOpen}
+        products={products}
+        onClose={() => setWasteProductOpen(false)}
+        onApply={handleWasteEntries}
       />
 
       <Modal
