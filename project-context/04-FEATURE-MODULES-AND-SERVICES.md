@@ -31,8 +31,26 @@ Manages inventory catalog, product barcodes, purchase/sale pricing, sizes, color
 
 ### Key Features
 - **Stock Filter Modes**: `'all'` (All Products), `'critical'` (`stock <= minStock`), `'normal'` (`stock > minStock`).
-- **Product Modal (`ProductFormModal.tsx`)**: Form for creating/editing product entries (Barcode, Name, Brand, Model, Size, Color, Purchase Price, Sale Price, Current Stock, Critical Min Stock).
-- **Service API**: `getProducts()`, `addProduct()`, `updateProduct()`, `deleteProduct()`.
+- **Product Modal (`ProductFormModal.tsx`)**: Form for creating/editing product entries (Barcode, Name, Brand, Model, Size, Color, Purchase Price, Sale Price, Current Stock, Critical Min Stock). Supports `initialBarcode`, `initialValues`, `hideStockField`, `existingBarcodes` (duplicate barcode validation), and custom `title` props for reuse in Mal Kabul flow.
+- **Service API**: `getProducts()`, `addProduct()`, `updateProduct()`, `deleteProduct()`, `applyStockEntries()`.
+- **Dealer Scoping**: `useStock` reads `businessId` from URL params and filters products by `dealerId`; new products get the current `dealerId`.
+
+### Mal Kabul (Stock Entry) — `StockEntryWorkspace.tsx`
+A full-page bulk stock intake workspace opened via the **Mal Kabul** button (replaces the stock table view while open).
+
+- **Search Panel**: Barcode scan or name/brand/model/size/color search with live suggestions (top 5). Enter adds the product.
+- **Entry Rules**:
+  - Same barcode scanned again → quantity +1 (no duplicate row).
+  - Exact barcode match → adds product; exact name match → adds product; single suggestion → auto-adds; multiple suggestions → asks to pick.
+  - Numeric barcode (6-32 digits) not found → "Bu ürün sistemde kayıtlı değil" warning with quantity input + **Yeni Ürün Oluştur** button.
+  - Non-numeric query with no match → info alert telling user to search by barcode for new products.
+- **New Product Flow**: Reuses `ProductFormModal` with barcode pre-filled and stock field hidden; entry appears with "Yeni ürün" tag; editable via pencil icon; quantity preserved.
+- **Table Columns**: Ürün (with brand·model·size·color meta), Alış/Satış prices, Mevcut Stok, Giriş Miktarı (InputNumber), Yeni Stok, actions (edit new product / remove).
+- **Summary Sidebar**: Ürün çeşidi, toplam adet, yeni ürün sayısı; assurance note that stocks only change on approval.
+- **Stoğa İşle**: Confirmation modal ("X ürüne toplam Y adet stok girişi yapılacak") → atomic apply via `applyStockEntries` (all-or-nothing; validates quantity ≥ 1, duplicate barcodes, dealer ownership) → list resets and returns to stock table.
+- **Guard Modals**: Discard confirmation when closing with entries; clear-list confirmation.
+- **Responsive**: Mobile card list replaces table on small screens.
+- **Out of scope (by design)**: supplier info, waybill/invoice, expected-vs-received comparison, damaged/return items, approval states, entry history, CSV import.
 
 ---
 
