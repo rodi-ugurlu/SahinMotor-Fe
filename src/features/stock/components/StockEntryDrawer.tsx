@@ -4,7 +4,6 @@ import {
   Button,
   Drawer,
   Empty,
-  Input,
   InputNumber,
   Modal,
   Space,
@@ -15,11 +14,12 @@ import {
 import {
   CheckCircleOutlined,
   DeleteOutlined,
+  EditOutlined,
   InboxOutlined,
   PlusOutlined,
-  SearchOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
+import { WorkflowProductSearch } from '../../../components/WorkflowProductSearch';
 import type { Product, ProductFormValues, StockEntryItem } from '../types/stock';
 import { ProductFormModal } from './ProductFormModal';
 import './StockEntryDrawer.css';
@@ -39,6 +39,7 @@ export function StockEntryDrawer({ open, products, onClose, onApply }: StockEntr
   const [notFoundBarcode, setNotFoundBarcode] = useState<string | null>(null);
   const [noMatchQuery, setNoMatchQuery] = useState<string | null>(null);
   const [newProductOpen, setNewProductOpen] = useState(false);
+  const [editingNewEntryIndex, setEditingNewEntryIndex] = useState<number | null>(null);
   const [pendingBarcode, setPendingBarcode] = useState('');
   const [pendingQuantity, setPendingQuantity] = useState(1);
   const [isApplying, setIsApplying] = useState(false);
@@ -46,11 +47,12 @@ export function StockEntryDrawer({ open, products, onClose, onApply }: StockEntr
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
 
   const filteredProducts = useMemo(() => {
-    if (!search.trim()) return [];
-    const q = search.toLowerCase();
-    return products.filter(
-      (p) => p.name.toLowerCase().includes(q) || p.barcode.toLowerCase().includes(q)
-    );
+    const query = search.trim().toLocaleLowerCase('tr-TR');
+    if (!query) return [];
+    return products.filter((product) => (
+      [product.name, product.barcode, product.brand, product.model, product.size, product.color]
+        .some((value) => value.toLocaleLowerCase('tr-TR').includes(query))
+    ));
   }, [products, search]);
 
   const reset = () => {
@@ -59,6 +61,7 @@ export function StockEntryDrawer({ open, products, onClose, onApply }: StockEntr
     setNotFoundBarcode(null);
     setNoMatchQuery(null);
     setNewProductOpen(false);
+    setEditingNewEntryIndex(null);
     setPendingBarcode('');
     setPendingQuantity(1);
     setIsApplying(false);
@@ -81,15 +84,15 @@ export function StockEntryDrawer({ open, products, onClose, onApply }: StockEntr
   };
 
   const addExistingProduct = (product: Product) => {
-    setEntries((prev) => {
-      const existing = prev.find((e) => !e.isNew && e.productId === product.id);
-      if (existing) {
-        return prev.map((e) =>
-          e.productId === product.id ? { ...e, quantity: e.quantity + 1 } : e
-        );
+    setEntries((previousEntries) => {
+      const existingEntry = previousEntries.find((entry) => !entry.isNew && entry.productId === product.id);
+      if (existingEntry) {
+        return previousEntries.map((entry) => (
+          entry.productId === product.id ? { ...entry, quantity: entry.quantity + 1 } : entry
+        ));
       }
       return [
-        ...prev,
+        ...previousEntries,
         {
           productId: product.id,
           barcode: product.barcode,
@@ -105,74 +108,110 @@ export function StockEntryDrawer({ open, products, onClose, onApply }: StockEntr
   };
 
   const handleSearchSubmit = () => {
-    const q = search.trim();
-    if (!q) return;
-    const stagedEntry = entries.find((entry) => entry.barcode === q);
+    const query = search.trim();
+    if (!query) return;
+
+    const stagedEntry = entries.find((entry) => entry.barcode === query);
     if (stagedEntry) {
-      setEntries((prev) => prev.map((entry) => (
-        entry.barcode === q ? { ...entry, quantity: entry.quantity + 1 } : entry
+      setEntries((previousEntries) => previousEntries.map((entry) => (
+        entry.barcode === query ? { ...entry, quantity: entry.quantity + 1 } : entry
       )));
       setSearch('');
       setNotFoundBarcode(null);
       setNoMatchQuery(null);
       return;
     }
-    const byBarcode = products.find((p) => p.barcode === q);
-    if (byBarcode) {
-      addExistingProduct(byBarcode);
+
+    const barcodeMatch = products.find((product) => product.barcode === query);
+    if (barcodeMatch) {
+      addExistingProduct(barcodeMatch);
       return;
     }
-    const byName = products.find((p) => p.name.toLowerCase() === q.toLowerCase());
-    if (byName) {
-      addExistingProduct(byName);
+
+    const normalizedQuery = query.toLocaleLowerCase('tr-TR');
+    const nameMatch = products.find((product) => product.name.toLocaleLowerCase('tr-TR') === normalizedQuery);
+    if (nameMatch) {
+      addExistingProduct(nameMatch);
       return;
     }
+
     if (filteredProducts.length === 1) {
       addExistingProduct(filteredProducts[0]);
       return;
     }
+
     if (filteredProducts.length > 1) {
       setNotFoundBarcode(null);
-      setNoMatchQuery('Birden fazla ürün bulundu. Listeden eklemek istediğiniz ürünü seçin.');
+      setNoMatchQuery('Birden fazla ürün bulundu. Eklemek istediğiniz ürünü öneri listesinden seçin.');
       return;
     }
-    if (/^\d{6,32}$/.test(q)) {
+
+    if (/^\d{6,32}$/.test(query)) {
       setPendingQuantity(1);
-      setNotFoundBarcode(q);
+      setNotFoundBarcode(query);
       setNoMatchQuery(null);
       return;
     }
+
     setNotFoundBarcode(null);
-    setNoMatchQuery(`“${q}” aramasıyla eşleşen ürün bulunamadı. Yeni ürün eklemek için barkod numarasıyla arayın.`);
+    setNoMatchQuery(`“${query}” aramasıyla eşleşen ürün bulunamadı. Yeni ürün eklemek için barkod numarasıyla arayın.`);
   };
 
   const openNewProductForm = () => {
+    setEditingNewEntryIndex(null);
     setPendingBarcode(notFoundBarcode ?? search.trim());
     setNewProductOpen(true);
   };
 
+  const openNewProductEditForm = (index: number) => {
+    setEditingNewEntryIndex(index);
+    setNewProductOpen(true);
+  };
+
+  const closeNewProductForm = () => {
+    setNewProductOpen(false);
+    setEditingNewEntryIndex(null);
+  };
+
   const handleNewProductSubmit = async (values: ProductFormValues) => {
-    const { stock: _ignoredStock, ...rest } = values;
+    const { stock: _ignoredStock, ...newProductData } = values;
     void _ignoredStock;
-    setEntries((prev) => {
-      const existing = prev.find((e) => e.isNew && e.barcode === rest.barcode);
-      if (existing) {
-        return prev.map((e) =>
-          e.isNew && e.barcode === rest.barcode ? { ...e, quantity: e.quantity + pendingQuantity } : e
-        );
+
+    setEntries((previousEntries) => {
+      if (editingNewEntryIndex !== null) {
+        return previousEntries.map((entry, index) => index === editingNewEntryIndex
+          ? {
+              ...entry,
+              barcode: newProductData.barcode,
+              name: newProductData.name,
+              newProductData,
+            }
+          : entry);
       }
+
+      const existingEntry = previousEntries.find((entry) => entry.isNew && entry.barcode === newProductData.barcode);
+      if (existingEntry) {
+        return previousEntries.map((entry) => (
+          entry.isNew && entry.barcode === newProductData.barcode
+            ? { ...entry, quantity: entry.quantity + pendingQuantity }
+            : entry
+        ));
+      }
+
       return [
-        ...prev,
+        ...previousEntries,
         {
-          barcode: rest.barcode,
-          name: rest.name,
+          barcode: newProductData.barcode,
+          name: newProductData.name,
           quantity: pendingQuantity,
           isNew: true,
-          newProductData: rest,
+          newProductData,
         },
       ];
     });
+
     setNewProductOpen(false);
+    setEditingNewEntryIndex(null);
     setNotFoundBarcode(null);
     setNoMatchQuery(null);
     setSearch('');
@@ -181,19 +220,32 @@ export function StockEntryDrawer({ open, products, onClose, onApply }: StockEntr
   };
 
   const updateQuantity = (index: number, quantity: number) => {
-    setEntries((prev) => prev.map((e, i) => (i === index ? { ...e, quantity } : e)));
+    setEntries((previousEntries) => previousEntries.map((entry, entryIndex) => (
+      entryIndex === index ? { ...entry, quantity } : entry
+    )));
   };
 
   const removeEntry = (index: number) => {
-    setEntries((prev) => prev.filter((_, i) => i !== index));
+    setEntries((previousEntries) => previousEntries.filter((_, entryIndex) => entryIndex !== index));
   };
 
-  const hasInvalidQuantity = entries.some((e) => !Number.isSafeInteger(e.quantity) || e.quantity < 1);
-  const hasUndefinedNew = entries.some((e) => e.isNew && !e.newProductData);
-  const totalQuantity = entries.reduce((sum, e) => sum + (e.quantity || 0), 0);
+  const getEntryDetails = (entry: StockEntryItem) => entry.isNew
+    ? entry.newProductData
+    : products.find((product) => product.id === entry.productId);
+
+  const getCurrentStock = (entry: StockEntryItem) => {
+    if (entry.isNew) return 0;
+    return products.find((product) => product.id === entry.productId)?.stock ?? 0;
+  };
+
+  const hasInvalidQuantity = entries.some((entry) => !Number.isSafeInteger(entry.quantity) || entry.quantity < 1);
+  const hasUndefinedNewProduct = entries.some((entry) => entry.isNew && !entry.newProductData);
+  const totalQuantity = entries.reduce((total, entry) => total + (entry.quantity || 0), 0);
+  const newProductCount = entries.filter((entry) => entry.isNew).length;
+  const editingNewEntry = editingNewEntryIndex === null ? null : entries[editingNewEntryIndex];
 
   const handleApply = async () => {
-    if (entries.length === 0 || hasInvalidQuantity || hasUndefinedNew) return;
+    if (entries.length === 0 || hasInvalidQuantity || hasUndefinedNewProduct) return;
     setIsApplying(true);
     try {
       await onApply(entries);
@@ -210,24 +262,34 @@ export function StockEntryDrawer({ open, products, onClose, onApply }: StockEntr
     {
       title: 'Ürün',
       key: 'product',
-      render: (_: unknown, record: StockEntryItem) => (
-        <div className="stock-entry__product-cell">
-          <Text strong style={{ fontSize: 13 }}>{record.name}</Text>
-          <Text style={{ fontSize: 11, color: '#94A3B8', fontFamily: 'monospace' }}>{record.barcode}</Text>
-          {record.isNew && <Tag color="purple" style={{ marginLeft: 4, fontSize: 10 }}>Yeni ürün</Tag>}
-        </div>
-      ),
+      width: 280,
+      render: (_: unknown, record: StockEntryItem) => {
+        const details = getEntryDetails(record);
+        const identity = details
+          ? [details.brand, details.model, details.size, details.color].filter(Boolean).join(' · ')
+          : '';
+        return (
+          <div className="stock-entry__product-cell">
+            <div className="stock-entry__product-heading">
+              <Text strong>{record.name}</Text>
+              {record.isNew && <Tag color="purple">Yeni ürün</Tag>}
+            </div>
+            {identity && <Text className="stock-entry__product-meta">{identity}</Text>}
+            <Text className="stock-entry__barcode">{record.barcode}</Text>
+          </div>
+        );
+      },
     },
     {
       title: 'Mevcut Stok',
       key: 'current',
-      width: 100,
+      width: 105,
       align: 'center' as const,
-      render: (_: unknown, record: StockEntryItem) => {
-        if (record.isNew) return <Text type="secondary">-</Text>;
-        const product = products.find((p) => p.id === record.productId);
-        return <Text>{product?.stock ?? '-'}</Text>;
-      },
+      render: (_: unknown, record: StockEntryItem) => (
+        record.isNew
+          ? <span className="stock-entry__stock-value stock-entry__stock-value--empty">Yeni</span>
+          : <span className="stock-entry__stock-value">{getCurrentStock(record)}</span>
+      ),
     },
     {
       title: 'Giriş Miktarı',
@@ -238,7 +300,7 @@ export function StockEntryDrawer({ open, products, onClose, onApply }: StockEntr
           min={1}
           precision={0}
           value={record.quantity}
-          onChange={(v) => updateQuantity(index, v ?? 1)}
+          onChange={(value) => updateQuantity(index, value ?? 1)}
           style={{ width: '100%' }}
         />
       ),
@@ -248,26 +310,38 @@ export function StockEntryDrawer({ open, products, onClose, onApply }: StockEntr
       key: 'newStock',
       width: 100,
       align: 'center' as const,
-      render: (_: unknown, record: StockEntryItem) => {
-        if (record.isNew) return <Text strong style={{ color: '#22C55E' }}>{record.quantity}</Text>;
-        const product = products.find((p) => p.id === record.productId);
-        const newStock = (product?.stock ?? 0) + (record.quantity || 0);
-        return <Text strong style={{ color: '#22C55E' }}>{newStock}</Text>;
-      },
+      render: (_: unknown, record: StockEntryItem) => (
+        <span className="stock-entry__stock-value stock-entry__stock-value--new">
+          {getCurrentStock(record) + (record.quantity || 0)}
+        </span>
+      ),
     },
     {
       title: '',
       key: 'actions',
-      width: 50,
+      width: 76,
       render: (_: unknown, record: StockEntryItem, index: number) => (
-        <Button
-          type="text"
-          danger
-          size="small"
-          icon={<DeleteOutlined />}
-          aria-label={`${record.name} ürününü listeden kaldır`}
-          onClick={() => removeEntry(index)}
-        />
+        <Space size={2}>
+          {record.isNew && (
+            <Button
+              type="text"
+              size="small"
+              icon={<EditOutlined />}
+              aria-label={`${record.name} ürününün bilgilerini düzenle`}
+              title="Yeni ürün bilgilerini düzenle"
+              onClick={() => openNewProductEditForm(index)}
+            />
+          )}
+          <Button
+            type="text"
+            danger
+            size="small"
+            icon={<DeleteOutlined />}
+            aria-label={`${record.name} ürününü listeden kaldır`}
+            title="Listeden kaldır"
+            onClick={() => removeEntry(index)}
+          />
+        </Space>
       ),
     },
   ];
@@ -278,12 +352,12 @@ export function StockEntryDrawer({ open, products, onClose, onApply }: StockEntr
         title="Mal Kabul"
         open={open}
         onClose={handleClose}
-        width={860}
-        destroyOnClose
+        width="min(860px, 100vw)"
+        destroyOnHidden
         closable={!isApplying}
         keyboard={!isApplying}
         maskClosable={!isApplying}
-        footer={
+        footer={(
           <div className="stock-entry__footer">
             <div className="stock-entry__footer-summary">
               <Text type="secondary">Hazırlanan kabul</Text>
@@ -296,53 +370,56 @@ export function StockEntryDrawer({ open, products, onClose, onApply }: StockEntr
                 danger
                 icon={<InboxOutlined />}
                 loading={isApplying}
-                disabled={entries.length === 0 || hasInvalidQuantity || hasUndefinedNew}
+                disabled={entries.length === 0 || hasInvalidQuantity || hasUndefinedNewProduct}
                 onClick={() => setApplyConfirmOpen(true)}
               >
                 Stoğa İşle
               </Button>
             </Space>
           </div>
-        }
+        )}
       >
         <div className="stock-entry__intro">
           <span className="stock-entry__intro-icon"><InboxOutlined /></span>
           <div>
             <Text strong>Ürünleri kabul listesinde hazırlayın</Text>
-            <Text type="secondary">Barkodu okutun veya ürün adını arayın. Stoklar yalnızca listeyi onayladığınızda güncellenir.</Text>
+            <Text type="secondary">Ürünleri arayın veya barkod okutun; stoklar yalnızca onayınızla güncellenir.</Text>
           </div>
         </div>
 
         <div className="stock-entry__search-card">
-          <Input.Search
-            prefix={<SearchOutlined />}
-            placeholder="Barkod veya ürün adı yazın, Enter'a basın..."
+          <WorkflowProductSearch
+            autoFocus
             value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
+            ariaLabel="Mal kabul listesine ürün eklemek için ara"
+            scanLabel="Barkod girişine odaklan"
+            onChange={(value) => {
+              setSearch(value);
               setNotFoundBarcode(null);
               setNoMatchQuery(null);
             }}
-            onSearch={handleSearchSubmit}
-            enterButton="Ekle"
-            size="large"
-            allowClear
+            onSubmit={handleSearchSubmit}
+            options={filteredProducts.slice(0, 5).map((product) => ({
+              key: product.id,
+              ariaLabel: `${product.name} ürününü mal kabul listesine ekle`,
+              onSelect: () => addExistingProduct(product),
+              content: (
+                <div className="stock-entry__suggestion">
+                  <div>
+                    <div className="stock-entry__suggestion-heading">
+                      <Text strong>{product.name}</Text>
+                      <Text className="stock-entry__barcode">{product.barcode}</Text>
+                    </div>
+                    <Text className="stock-entry__product-meta">
+                      {[product.brand, product.model, product.size, product.color].filter(Boolean).join(' · ')}
+                    </Text>
+                  </div>
+                  <Text type="secondary">Stok: <strong>{product.stock}</strong></Text>
+                </div>
+              ),
+            }))}
           />
         </div>
-
-        {filteredProducts.length > 0 && (
-          <div className="stock-entry__suggestions">
-            {filteredProducts.slice(0, 5).map((p) => (
-              <button key={p.id} type="button" className="stock-entry__suggestion" onClick={() => addExistingProduct(p)}>
-                <div>
-                  <Text strong style={{ fontSize: 13 }}>{p.name}</Text>
-                  <Text style={{ fontSize: 11, color: '#94A3B8', fontFamily: 'monospace', marginLeft: 8 }}>{p.barcode}</Text>
-                </div>
-                <Text type="secondary" style={{ fontSize: 12 }}>Stok: {p.stock}</Text>
-              </button>
-            ))}
-          </div>
-        )}
 
         {noMatchQuery && (
           <Alert
@@ -360,7 +437,7 @@ export function StockEntryDrawer({ open, products, onClose, onApply }: StockEntr
             showIcon
             icon={<WarningOutlined />}
             message="Bu ürün sistemde kayıtlı değil"
-            description={
+            description={(
               <div className="stock-entry__new-product-action">
                 <div>
                   <Text type="secondary">Barkod</Text>
@@ -370,15 +447,15 @@ export function StockEntryDrawer({ open, products, onClose, onApply }: StockEntr
                   min={1}
                   precision={0}
                   value={pendingQuantity}
-                  onChange={(v) => setPendingQuantity(v ?? 1)}
+                  onChange={(value) => setPendingQuantity(value ?? 1)}
                   addonBefore="Adet"
-                  style={{ width: 128 }}
+                  style={{ width: 132 }}
                 />
-                <Button size="small" type="primary" danger icon={<PlusOutlined />} onClick={openNewProductForm}>
+                <Button type="primary" danger icon={<PlusOutlined />} onClick={openNewProductForm}>
                   Yeni Ürün Oluştur
                 </Button>
               </div>
-            }
+            )}
             className="stock-entry__notice"
           />
         )}
@@ -386,25 +463,20 @@ export function StockEntryDrawer({ open, products, onClose, onApply }: StockEntr
         {entries.length === 0 ? (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description="Henüz ürün eklenmedi. Barkod veya ürün adı ile arayın."
-            style={{ marginTop: 48 }}
+            description="Henüz ürün eklenmedi. Barkod veya ürün adıyla arayın."
+            className="stock-entry__empty"
           />
         ) : (
           <>
             <Table<StockEntryItem>
               columns={columns}
               dataSource={entries}
-              rowKey={(r) => r.productId ?? r.barcode}
+              rowKey={(record) => record.productId ?? record.barcode}
               pagination={false}
               size="middle"
-              scroll={{ x: 680 }}
+              scroll={{ x: 690 }}
               className="stock-entry__table"
             />
-            <div className="stock-entry__summary">
-              <Text>
-                <strong>{entries.length} ürüne</strong> toplam <strong>{totalQuantity} adet</strong> stok girişi yapılacak
-              </Text>
-            </div>
           </>
         )}
       </Drawer>
@@ -412,13 +484,15 @@ export function StockEntryDrawer({ open, products, onClose, onApply }: StockEntr
       <ProductFormModal
         open={newProductOpen}
         editingProduct={null}
-        initialBarcode={pendingBarcode}
+        initialBarcode={editingNewEntry ? undefined : pendingBarcode}
+        initialValues={editingNewEntry?.newProductData}
         hideStockField
+        title={editingNewEntry ? 'Yeni Ürün Bilgilerini Düzenle' : undefined}
         existingBarcodes={[
           ...products.map((product) => product.barcode),
           ...entries.map((entry) => entry.barcode),
         ]}
-        onCancel={() => setNewProductOpen(false)}
+        onCancel={closeNewProductForm}
         onSubmit={handleNewProductSubmit}
       />
 
@@ -437,6 +511,9 @@ export function StockEntryDrawer({ open, products, onClose, onApply }: StockEntr
           <CheckCircleOutlined />
           <div>
             <Text strong>{entries.length} ürüne toplam {totalQuantity} adet stok girişi yapılacak.</Text>
+            {newProductCount > 0 && (
+              <Text type="secondary">Bu işlem sırasında {newProductCount} yeni ürün kartı oluşturulacak.</Text>
+            )}
             <Text type="secondary">Onayladığınızda listedeki miktarlar mevcut stoklara eklenecek.</Text>
           </div>
         </div>

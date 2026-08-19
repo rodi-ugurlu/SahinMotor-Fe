@@ -1,123 +1,50 @@
-# 05 - Data Models & TypeScript Definitions
+# 05 — Veri Modelleri ve Tipler
 
-This document collects all key interfaces, types, and data schemas across the application for fast reference by AI agents.
+Bu belge `src/features/*/types` dosyalarındaki canlı sözleşmeleri özetler. Aynı isimli tiplerin farklı feature'larda ayrı tanımlanabildiğine dikkat edilmelidir.
 
----
+## Auth
 
-## 1. Authentication & Users
+```ts
+type UserRole = 'sahin' | 'koman' | 'admin' | null;
+type AuthRole = 'sahin' | 'koman';
+type AuthView = 'login' | 'register';
 
-```typescript
-// src/features/auth/types/auth.ts
-export type UserRole = 'sahin' | 'koman' | 'admin' | null;
-export type AuthRole = 'sahin' | 'koman';
-export type AuthView = 'login' | 'register';
-export type TicketCategory = 'Motor' | 'Elektrik' | 'Hidrolik' | 'Pnömatik' | 'GenelBakim' | 'ECU';
-
-export interface User {
+interface User {
   id: string;
   email: string;
   name: string;
   role: UserRole;
 }
 
-export interface LoginCredentials {
+interface LoginCredentials {
   email: string;
   password: string;
 }
-
-// src/features/users/types/users.ts
-export type UserRole = 'SuperAdmin' | 'Admin' | 'Personel' | 'Guest';
-
-export interface User {
-  id: string;
-  fullName: string;
-  email: string;
-  password: string;
-  photoUrl?: string;
-  role: UserRole;
-  dealerId: string;
-  createdAt: string;
-}
-
-export type UserFormValues = {
-  fullName: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  photoUrl?: string;
-  role: UserRole;
-  dealerId: string;
-};
-
-export type UserEditFormValues = {
-  fullName: string;
-  email: string;
-  photoUrl?: string;
-  role: UserRole;
-  dealerId: string;
-};
-
-export const USER_ROLES: UserRole[] = ['Admin', 'Personel', 'Guest'];
-
-export const ROLE_LABELS: Record<UserRole, string> = {
-  SuperAdmin: 'Süper Admin',
-  Admin: 'Admin',
-  Personel: 'Personel',
-  Guest: 'Misafir',
-};
-
-export const ROLE_COLORS: Record<UserRole, string> = {
-  SuperAdmin: '#E32727',
-  Admin: '#3B82F6',
-  Personel: '#22C55E',
-  Guest: '#94A3B8',
-};
 ```
 
----
+`SahinRegisterRequest`: firstName, lastName, companyName, city, district, email, phone, password, confirmPassword, terms.
 
-## 2. Business & Dealers
+`KomanRegisterRequest`: companyName, contactName, email, phone, city, district, password, confirmPassword, terms.
 
-```typescript
-// src/features/business/types/business.ts
-export interface Business {
+`TicketCategory`: `'Motor' | 'Elektrik' | 'Hidrolik' | 'Pnömatik' | 'GenelBakim' | 'ECU'`.
+
+## Business
+
+```ts
+interface Business {
   id: string;
   name: string;
   description: string;
   logoUrl?: string;
 }
-
-// src/features/dealers/types/dealers.ts
-export interface DealerUser {
-  id: string;
-  name: string;
-  role: string;
-  email: string;
-}
-
-export interface Dealer {
-  id: string;
-  name: string;
-  description: string;
-  logoUrl?: string;
-  assignedUserIds: string[];
-  createdAt: string;
-}
-
-export type DealerFormValues = {
-  name: string;
-  description: string;
-  logoUrl?: string;
-};
 ```
 
----
+`Business`, `Dealer` kaydından seçim ekranı için map edilir; ayrı bir kalıcı koleksiyon değildir.
 
-## 3. Stock & Inventory
+## Stock
 
-```typescript
-// src/features/stock/types/stock.ts
-export interface Product {
+```ts
+interface Product {
   id: string;
   barcode: string;
   name: string;
@@ -135,19 +62,56 @@ export interface Product {
   updatedAt: string;
 }
 
-export type StockFilter = 'all' | 'critical' | 'normal';
+type StockFilter = 'all' | 'critical' | 'normal';
+type ProductFormValues = Omit<Product, 'id' | 'dealerId' | 'createdAt' | 'updatedAt'>;
+
+interface StockEntryItem {
+  productId?: string;
+  barcode: string;
+  name: string;
+  quantity: number;
+  isNew: boolean;
+  newProductData?: Omit<
+    Product,
+    'id' | 'dealerId' | 'createdAt' | 'updatedAt' | 'stock'
+  >;
+}
+
+type WasteReason = 'expired' | 'damaged' | 'spilled' | 'unusable' | 'other';
+
+interface WasteEntryItem {
+  productId: string;
+  barcode: string;
+  name: string;
+  quantity: number;
+  reason?: WasteReason;
+}
+
+interface WasteRecord extends WasteEntryItem {
+  id: string;
+  dealerId: string;
+  reason: WasteReason;
+  createdAt: string;
+}
 ```
 
----
+Kurallar:
 
-## 4. Sales & POS
+- `dealerId`, route'taki `businessId` ile atanır/filtrelenir.
+- Kritik stok koşulu `stock <= minStock`tir.
+- Normal ürün formunda `stock` bulunur; Mal Kabul yeni ürün formunda bu alan gizlenir ve `StockEntryItem.quantity` başlangıç stoğu olur.
+- Barkod servis sınırında yeni ürün için 6–32 rakamdır.
+- Mal Kabul miktarı pozitif `Number.isSafeInteger` olmalıdır.
+- Atık miktarı pozitif `Number.isSafeInteger` olmalı, mevcut stoğu aşmamalı ve neden alanı tanımlı seçeneklerden biri olmalıdır.
+- Atık uygulaması ürün stokları ile `WasteRecord` listesini bütün satırlar doğrulandıktan sonra birlikte commit eder.
 
-```typescript
-// src/features/sales/types/sales.ts
-export interface SaleItem {
+## Sales
+
+```ts
+interface SaleItem {
   productId: string;
   productName: string;
-  productCode: string;
+  productCode: string;       // UI'da barkod anlamında kullanılıyor
   unitPrice: number;
   quantity: number;
   discountPercent: number;
@@ -155,10 +119,10 @@ export interface SaleItem {
   total: number;
 }
 
-export type PaymentMethod = 'kart' | 'nakit' | 'havale';
-export type SaleStatus = 'taslak' | 'beklemede' | 'bitti' | 'iptal';
+type PaymentMethod = 'kart' | 'nakit' | 'havale';
+type SaleStatus = 'taslak' | 'beklemede' | 'bitti' | 'iptal';
 
-export interface Sale {
+interface Sale {
   id: string;
   bayiId: string;
   personelId: string;
@@ -174,32 +138,16 @@ export interface Sale {
   createdAt: string;
   updatedAt: string;
 }
-
-// Satış modülü içinde kullanılan hafif müşteri tipi (sales/types/sales.ts)
-export type CustomerType = 'individual' | 'company';
-
-export interface Customer {
-  id: string;
-  fullName: string;
-  type: CustomerType;
-  tc?: string;
-  vkn?: string;
-  taxOffice?: string;
-  billingAddress?: string;
-  phone: string;
-  email?: string;
-}
 ```
 
----
+Sales feature ayrıca kendi `Customer` tipini tanımlar: `id`, `fullName`, `type`, opsiyonel TC/VKN/vergi dairesi/fatura adresi, telefon ve opsiyonel e-posta. Bu tip ve veri seti customers feature'ından bağımsızdır.
 
-## 5. Customers CRM
+## Customers
 
-```typescript
-// src/features/customers/types/customers.ts
-export type CustomerType = 'individual' | 'company';
+```ts
+type CustomerType = 'individual' | 'company';
 
-export interface Customer {
+interface Customer {
   id: string;
   fullName: string;
   type: CustomerType;
@@ -212,32 +160,80 @@ export interface Customer {
   createdAt: string;
 }
 
-export type CustomerFormValues = Omit<Customer, 'id' | 'createdAt'>;
+type CustomerFormValues = Omit<Customer, 'id' | 'createdAt'>;
 ```
 
----
+Sales `Customer` tipinden farklı olarak `billingAddress` ve `email` burada zorunlu string alanlarıdır (UI e-postayı opsiyonel bırakabildiği için boş string olabilir).
 
-## 6. Audit Logs
+## Dealers
 
-```typescript
-// src/features/logs/types/logs.ts
-export type LogType = 'sales' | 'stock' | 'login' | 'logout';
-export type LogModule = 'Satış' | 'Stok Yönetimi' | 'Auth';
+```ts
+interface DealerUser {
+  id: string;
+  name: string;
+  role: string;
+  email: string;
+}
 
-export interface LogUser {
+interface Dealer {
+  id: string;
+  name: string;
+  description: string;
+  logoUrl?: string;
+  assignedUserIds: string[];
+  createdAt: string;
+}
+
+type DealerFormValues = {
+  name: string;
+  description: string;
+  logoUrl?: string;
+};
+```
+
+`assignedUserIds`, users servisindeki kimliklere referans verir; foreign-key doğrulaması yalnızca atama servisinin kullanıcıyı bulması düzeyindedir.
+
+## Users
+
+```ts
+type UserRole = 'SuperAdmin' | 'Admin' | 'Personel' | 'Guest';
+
+interface User {
+  id: string;
+  fullName: string;
+  email: string;
+  password: string;
+  photoUrl?: string;
+  role: UserRole;
+  dealerId: string;
+  createdAt: string;
+}
+```
+
+`UserFormValues`, `confirmPassword` dahil oluşturma formudur. `UserEditFormValues` parola alanlarını çıkarır. `USER_ROLES` yalnızca `Admin`, `Personel`, `Guest` içerir; `SuperAdmin` type/label/color sözlüğünde vardır fakat yönetim formu seçeneği değildir.
+
+Auth `User` ve users feature `User` aynı model değildir.
+
+## Logs
+
+```ts
+type LogType = 'sales' | 'stock' | 'login' | 'logout';
+type LogModule = 'Satış' | 'Stok Yönetimi' | 'Auth';
+
+interface LogUser {
   id: string;
   name: string;
   role: 'SuperAdmin' | 'Admin' | 'Personel' | 'Guest';
   color: string;
 }
 
-export interface LogChange {
+interface LogChange {
   field: string;
   oldValue: string;
   newValue: string;
 }
 
-export interface LogEntry {
+interface LogEntry {
   id: string;
   date: string;
   user: LogUser;
@@ -250,15 +246,14 @@ export interface LogEntry {
 }
 ```
 
----
+`USERS` sabiti 4 log kullanıcısı içerir ve gerçek users service koleksiyonuna bağlı değildir.
 
-## 7. Reports & Analytics
+## Reports
 
-```typescript
-// src/features/reports/types/reports.ts
-export type ReportPeriod = 'daily' | 'weekly' | 'monthly';
+```ts
+type ReportPeriod = 'daily' | 'weekly' | 'monthly';
 
-export interface DailyReport {
+interface DailyReport {
   date: string;
   invoiceNo: string;
   customer: string;
@@ -266,14 +261,14 @@ export interface DailyReport {
   total: number;
 }
 
-export interface WeeklyReport {
+interface WeeklyReport {
   week: string;
   totalSales: number;
   totalRevenue: number;
   avgRevenue: number;
 }
 
-export interface MonthlyReport {
+interface MonthlyReport {
   month: string;
   totalSales: number;
   totalRevenue: number;
@@ -281,7 +276,7 @@ export interface MonthlyReport {
   growth: number;
 }
 
-export interface ProductReport {
+interface ProductReport {
   rank: number;
   productName: string;
   category: string;
@@ -290,7 +285,7 @@ export interface ProductReport {
   revenuePercent: number;
 }
 
-export interface ReportSummary {
+interface ReportSummary {
   revenue: number;
   revenueChange: number;
   salesCount: number;
@@ -299,3 +294,67 @@ export interface ReportSummary {
   topItem: string;
 }
 ```
+
+`invoiceNo` ve bazı “fatura” adları type seviyesinde tarihsel olarak durur; UI'nın bazı yerlerinde “satış” dili kullanılır.
+
+## Dashboard
+
+```ts
+interface DashboardStats {
+  dailyRevenue: number;
+  dailyRevenueChange: number;
+  totalSalesCount: number;
+  criticalStockCount: number;
+  activeUserCount: number;
+  activeUserRole: string;
+}
+
+interface RecentSale {
+  id: string;
+  date: string;
+  product: string;
+  customer: string;
+  amount: number;
+  status: 'completed' | 'pending' | 'cancelled';
+}
+
+interface StockItem {
+  product: string;
+  current: number;
+  min: number;
+  max: number;
+}
+```
+
+Dashboard'ın `StockItem` tipi stock feature `Product` modeli değildir.
+
+## Transactions
+
+Transactions ayrı types dosyası yerine report/log/stock/sales tiplerini import eder. Hook şu tipi export eder:
+
+```ts
+type DatePreset = 'today' | 'weekly' | 'monthly' | 'quarterly';
+```
+
+Ancak canlı hook başlangıç değerini `'daily' as DatePreset` ile kurar. Bu, type assertion ile saklanmış bir runtime/type uyumsuzluğudur.
+
+## Kimlik, tarih ve para biçimleri
+
+- Mock ID'ler çoğunlukla kısa sabit string veya `Date.now()` tabanlı stringdir; UUID garantisi yoktur.
+- Tarihler ISO değildir; birçok CRUD servisi `toLocaleString('tr-TR')`, seed verileri farklı metin formatları kullanır.
+- Para alanları `number`dır; decimal/currency value object veya kuruş tabanlı integer modeli yoktur.
+- Telefon, TC, VKN ve barkod sayısal anlam taşısa da baştaki sıfırları korumak için stringdir.
+- Mock kullanıcı parolası plaintext tutulur; üretim modeli olarak kullanılmamalıdır.
+
+## Sahiplik ve ilişkiler özeti
+
+| İlişki | Canlı uygulama |
+|---|---|
+| route `businessId` → stock `dealerId` | uygulanıyor |
+| route `businessId` → layout dealer | uygulanıyor |
+| dealer `assignedUserIds` → users | aynı runtime içinde uygulanıyor |
+| business → dealer | mapping ile uygulanıyor |
+| sale `bayiId` → route business | uygulanmıyor; yeni satış `d1` |
+| sale items → stock products | uygulanmıyor; ayrı koleksiyon |
+| sales customer → customers feature | uygulanmıyor; ayrı koleksiyon |
+| reports/logs/dashboard → CRUD verileri | uygulanmıyor; sabit mock veri |

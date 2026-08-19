@@ -1,0 +1,26 @@
+.waste-product__intro {
+  background: linear-gradient(135deg, var(--color-warning-50) 0%, var(--color-white) 100%);
+  border-color: var(--color-warning-100);
+}
+
+.waste-product__intro-icon {
+  color: var(--color-warning-600);
+  border-color: var(--color-warning-300);
+}
+
+.waste-product__remaining-stock {
+  color: var(--color-success-600);
+}
+
+.waste-product__remaining-stock--critical {
+  color: var(--color-brand-500);
+}
+
+.waste-product__confirm-content > .anticon {
+  color: var(--color-brand-500);
+}
+
+.waste-product__table .ant-select-selector,
+.waste-product__table .ant-input-number {
+  border-radius: 8px;
+}

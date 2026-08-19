@@ -321,13 +321,15 @@ export default function TransactionsPage() {
             <Select
               value={logTypeFilter}
               onChange={setLogTypeFilter}
-              style={{ width: 170 }}
+              style={{ width: 220 }}
               size="large"
               suffixIcon={<FilterOutlined />}
               options={[
                 { value: 'all', label: 'Tüm İşlem Türleri' },
                 { value: 'sales', label: 'Satış İşlemleri' },
-                { value: 'stock', label: 'Stok Hareketleri' },
+                { value: 'stockEntry', label: 'Mal Kabul İşlemleri' },
+                { value: 'stock', label: 'Stok İşlemleri' },
+                { value: 'waste', label: 'Atık Ürün İşlemleri' },
               ]}
             />
 
@@ -756,4 +758,3 @@ export default function TransactionsPage() {
     </div>
   );
 }
-

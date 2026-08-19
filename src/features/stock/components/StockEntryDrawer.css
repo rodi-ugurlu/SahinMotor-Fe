@@ -4,8 +4,8 @@
   gap: 12px;
   padding: 14px 16px;
   margin-bottom: 16px;
-  background: linear-gradient(135deg, #FFF7F7 0%, #FFFFFF 100%);
-  border: 1px solid #FEE2E2;
+  background: linear-gradient(135deg, var(--color-brand-50) 0%, var(--color-white) 100%);
+  border: 1px solid var(--color-brand-100);
   border-radius: 12px;
 }
 
@@ -22,58 +22,37 @@
   width: 36px;
   height: 36px;
   flex: 0 0 36px;
-  color: #E32727;
+  color: var(--color-brand-500);
   font-size: 18px;
-  background: #FFFFFF;
-  border: 1px solid #FECACA;
+  background: var(--color-white);
+  border: 1px solid var(--color-brand-300);
   border-radius: 10px;
 }
 
 .stock-entry__search-card {
-  padding: 12px;
-  margin-bottom: 10px;
-  background: #F8FAFC;
-  border: 1px solid #E2E8F0;
-  border-radius: 12px;
-}
-
-.stock-entry__suggestions {
-  background: #fff;
-  border: 1px solid #E2E8F0;
-  border-radius: 12px;
-  margin-bottom: 16px;
-  overflow: hidden;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  padding: 10px;
+  margin-bottom: 14px;
+  background: var(--color-neutral-50);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 14px;
 }
 
 .stock-entry__suggestion {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   width: 100%;
-  padding: 10px 14px;
-  cursor: pointer;
-  text-align: left;
-  font: inherit;
-  color: inherit;
-  background: #FFFFFF;
-  border: 0;
-  border-bottom: 1px solid #F1F5F9;
-  transition: background 0.15s, padding-left 0.15s;
 }
 
-.stock-entry__suggestion:last-child {
-  border-bottom: none;
+.stock-entry__suggestion > div {
+  min-width: 0;
 }
 
-.stock-entry__suggestion:hover {
-  background: #FFF5F5;
-  padding-left: 18px;
-}
-
-.stock-entry__suggestion:focus-visible {
-  outline: 2px solid #E32727;
-  outline-offset: -2px;
+.stock-entry__suggestion-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
 }
 
 .stock-entry__notice {
@@ -95,47 +74,78 @@
   gap: 6px;
 }
 
+.stock-entry__empty {
+  margin-top: 48px;
+}
+
 .stock-entry__product-cell {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
-.stock-entry__product-cell .ant-tag {
-  width: fit-content;
-  margin: 3px 0 0;
+.stock-entry__product-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stock-entry__product-heading .ant-typography {
+  min-width: 0;
+}
+
+.stock-entry__product-heading .ant-tag {
+  flex: 0 0 auto;
+  margin-inline-end: 0;
+  font-size: 10px;
+}
+
+.stock-entry__product-meta {
+  overflow: hidden;
+  color: var(--color-neutral-500);
+  font-size: 11px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stock-entry__barcode {
+  color: var(--color-neutral-400);
+  font-family: monospace;
+  font-size: 11px;
+}
+
+.stock-entry__stock-value {
+  color: var(--color-neutral-800);
+  font-weight: 600;
+}
+
+.stock-entry__stock-value--empty {
+  color: var(--color-neutral-400);
+  font-weight: 500;
+}
+
+.stock-entry__stock-value--new {
+  color: var(--color-success-500);
 }
 
 .stock-entry__table {
   margin-top: 16px;
-  border: 1px solid #E2E8F0;
-  border-radius: 12px;
   overflow: hidden;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 12px;
 }
 
 .stock-entry__table .ant-table-thead > tr > th {
-  color: #64748B;
+  color: var(--color-neutral-500);
   font-size: 12px;
   font-weight: 600;
-  background: #F8FAFC;
+  background: var(--color-neutral-50);
 }
 
 .stock-entry__table .ant-table-tbody > tr:hover > td {
-  background: #FFF9F9;
-}
-
-.stock-entry__summary {
-  margin-top: 16px;
-  padding: 13px 16px;
-  background: #F0FDF4;
-  border: 1px solid #BBF7D0;
-  border-radius: 12px;
-  font-size: 13px;
-  color: #64748B;
-}
-
-.stock-entry__summary strong {
-  color: #166534;
+  background: var(--color-brand-50);
 }
 
 .stock-entry__footer {
@@ -161,7 +171,7 @@
 
 .stock-entry__confirm-content > .anticon {
   margin-top: 2px;
-  color: #22C55E;
+  color: var(--color-success-500);
   font-size: 24px;
 }
 
@@ -174,6 +184,12 @@
 @media (max-width: 640px) {
   .stock-entry__intro {
     padding: 12px;
+  }
+
+  .stock-entry__suggestion {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
   }
 
   .stock-entry__new-product-action {

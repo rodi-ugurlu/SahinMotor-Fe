@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { message } from 'antd';
 import { useParams } from 'react-router-dom';
-import type { Product, ProductFormValues, StockEntryItem, StockFilter } from '../types/stock';
-import { addProduct, applyStockEntries, deleteProduct, getProducts, updateProduct } from '../services/stockService';
+import type { Product, ProductFormValues, StockEntryItem, StockFilter, WasteEntryItem } from '../types/stock';
+import { addProduct, applyStockEntries, applyWasteEntries, deleteProduct, getProducts, updateProduct } from '../services/stockService';
 
 type State = 'loading' | 'loaded' | 'empty' | 'error';
 
@@ -12,20 +12,13 @@ interface UseStockReturn {
   state: State;
   search: string;
   filter: StockFilter;
-  brandFilter: string;
-  modelFilter: string;
-  sizeFilter: string;
-  colorFilter: string;
   setSearch: (value: string) => void;
   setFilter: (filter: StockFilter) => void;
-  setBrandFilter: (brand: string) => void;
-  setModelFilter: (model: string) => void;
-  setSizeFilter: (size: string) => void;
-  setColorFilter: (color: string) => void;
   handleAdd: (data: ProductFormValues) => Promise<void>;
   handleUpdate: (id: string, data: Partial<ProductFormValues>) => Promise<void>;
   handleDelete: (id: string) => Promise<void>;
   handleStockEntries: (entries: StockEntryItem[]) => Promise<void>;
+  handleWasteEntries: (entries: WasteEntryItem[]) => Promise<void>;
   retry: () => void;
 }
 
@@ -35,10 +28,6 @@ export function useStock(): UseStockReturn {
   const [state, setState] = useState<State>('loading');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<StockFilter>('all');
-  const [brandFilter, setBrandFilter] = useState('');
-  const [modelFilter, setModelFilter] = useState('');
-  const [sizeFilter, setSizeFilter] = useState('');
-  const [colorFilter, setColorFilter] = useState('');
 
   const fetch = useCallback(() => {
     setState('loading');
@@ -65,22 +54,6 @@ export function useStock(): UseStockReturn {
       result = result.filter((p) => p.stock > p.minStock);
     }
 
-    if (brandFilter) {
-      result = result.filter((p) => p.brand === brandFilter);
-    }
-
-    if (modelFilter) {
-      result = result.filter((p) => p.model === modelFilter);
-    }
-
-    if (sizeFilter) {
-      result = result.filter((p) => p.size === sizeFilter);
-    }
-
-    if (colorFilter) {
-      result = result.filter((p) => p.color === colorFilter);
-    }
-
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(
@@ -93,7 +66,7 @@ export function useStock(): UseStockReturn {
     }
 
     return result;
-  }, [products, filter, brandFilter, modelFilter, sizeFilter, colorFilter, search]);
+  }, [products, filter, search]);
 
   const handleAdd = async (data: ProductFormValues) => {
     try {
@@ -148,11 +121,26 @@ export function useStock(): UseStockReturn {
     }
   };
 
+  const handleWasteEntries = async (entries: WasteEntryItem[]) => {
+    try {
+      const updated = await applyWasteEntries(entries, businessId);
+      setProducts((previousProducts) => {
+        const updatedById = new Map(updated.map((product) => [product.id, product]));
+        return previousProducts.map((product) => updatedById.get(product.id) ?? product);
+      });
+      const totalQuantity = entries.reduce((total, entry) => total + entry.quantity, 0);
+      message.success(`${entries.length} üründen toplam ${totalQuantity} adet stoktan düşüldü`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Atık ürünler stoktan düşülürken hata oluştu';
+      message.error(errorMessage);
+      throw error;
+    }
+  };
+
   return {
     products, filteredProducts, state, search, filter,
-    brandFilter, modelFilter, sizeFilter, colorFilter,
-    setSearch, setFilter, setBrandFilter, setModelFilter, setSizeFilter, setColorFilter,
-    handleAdd, handleUpdate, handleDelete, handleStockEntries,
+    setSearch, setFilter,
+    handleAdd, handleUpdate, handleDelete, handleStockEntries, handleWasteEntries,
     retry: fetch,
   };
 }

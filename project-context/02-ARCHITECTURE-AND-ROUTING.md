@@ -1,122 +1,136 @@
-# 02 - Architecture, Routing & Shared Utilities
+# 02 — Mimari ve Routing
 
-## 📂 Directory & Modular File Structure
+## Kaynak ağacı
 
-The project follows a **Feature-Sliced Architecture** for scalability, clean separation of concerns, and easy maintenance.
-
-```
-SahinMotor-Fe/
-├── public/                     # Static assets & favicons
-├── project-context/            # AI Agent & Developer project documentation
-├── src/
-│   ├── app/                    # Application global context / providers (if extended)
-│   ├── components/             # App-wide global UI components & modals
-│   │   ├── PasswordModal.tsx   # Password change modal with validation
-│   │   └── ProfileModal.tsx    # User profile & avatar update modal
-│   ├── features/               # Feature-sliced domain modules
-│   │   ├── auth/               # Login, register, location data, specialty tags
-│   │   ├── business/           # Business selection & dealer switcher
-│   │   ├── customers/          # Customer CRM & billing profiles
-│   │   ├── dashboard/          # Summary metrics & quick overview
-│   │   ├── dealers/            # Dealer management & user assignment
-│   │   ├── logs/               # Audit trail, IP logging, before/after diffs
-│   │   ├── reports/            # Daily/weekly/monthly revenue analytics
-│   │   ├── sales/              # Point of sale, cart calculation, invoices
-│   │   ├── stock/              # Inventory management & product modals
-│   │   ├── transactions/       # Aggregated activities & log viewer
-│   │   └── users/              # System user management & permissions
-│   ├── layouts/                # Main app layout frames
-│   │   ├── DashboardLayout.css # Dashboard layout responsive styling
-│   │   └── DashboardLayout.tsx # Collapsible sidebar, header, popovers
-│   ├── pages/                  # Top-level fallback pages
-│   │   └── NotFoundPage.tsx    # 404 Error page
-│   ├── router/                 # React Router routing configuration
-│   │   └── AppRouter.tsx       # Browser router definition
-│   ├── shared/                 # Reusable cross-feature utilities
-│   │   ├── events.ts           # Pub-Sub event emitter for cross-component triggers
-│   │   ├── image.ts            # Base64 image reader utility
-│   │   ├── notifications.ts    # Reactive in-memory store (useSyncExternalStore)
-│   │   └── validation.ts       # Phone mask formatter & password regex rule
-│   ├── App.tsx                 # Root application wrapper
-│   ├── index.css               # Global CSS reset & typography rules
-│   └── main.tsx                # Application entrypoint & DOM mount
-├── .gitignore                  # Git exclusion configuration (includes project-context/)
-├── index.html                  # HTML template with Google Fonts (Poppins)
-├── package.json                # Project dependencies & npm scripts
-├── tsconfig.json               # TypeScript base configuration
-├── tsconfig.app.json           # Application TypeScript build configuration
-└── vite.config.ts              # Vite bundler plugins & settings
+```text
+src/
+├── App.tsx                         # Ant Design tr_TR ve AppRouter
+├── main.tsx                        # StrictMode ile mount
+├── index.css                       # global reset ve tema tabanı
+├── components/
+│   ├── PasswordModal.tsx
+│   ├── ProfileModal.tsx
+│   ├── WorkflowProductSearch.tsx
+│   ├── WorkflowProductSearch.css
+│   ├── WorkflowSpotlight.tsx
+│   └── WorkflowSpotlight.css
+├── layouts/
+│   ├── DashboardLayout.tsx
+│   └── DashboardLayout.css
+├── router/AppRouter.tsx
+├── pages/NotFoundPage.tsx
+├── shared/
+│   ├── events.ts                   # küçük senkron event registry
+│   ├── image.ts                    # FileReader → base64
+│   ├── notifications.ts            # useSyncExternalStore tabanlı bellek store'u
+│   └── validation.ts               # telefon formatı ve güçlü parola kuralı
+└── features/
+    ├── auth/          ├── business/      ├── customers/
+    ├── dashboard/     ├── dealers/       ├── logs/
+    ├── reports/       ├── sales/         ├── stock/
+    ├── transactions/  └── users/
 ```
 
----
+Toplam **11 feature dizini** vardır. Çoğu `types → service → hook → page/components` ayrımını izler. `transactions` kendi servis ve types dosyasına sahip değildir; diğer feature servis ve tiplerini birleştirir.
 
-## 🚦 Routing Architecture (`AppRouter.tsx`)
+Projede `src/app/`, API istemcisi, store dizini, test dizini veya route guard bulunmaz.
 
-Routing is implemented using `react-router-dom` v7 with `createBrowserRouter`.
+## Başlangıç zinciri
 
-### Route Map Matrix
-
-| Path | Component | Description |
-| :--- | :--- | :--- |
-| `/` | [`SahinLogin`](file:///home/just-z/Desktop/SahinMotor-Fe/src/features/auth/pages/SahinLogin.tsx) | Default landing page & authentication form. |
-| `/sahin/login` | [`SahinLogin`](file:///home/just-z/Desktop/SahinMotor-Fe/src/features/auth/pages/SahinLogin.tsx) | Brand-specific login endpoint for Şahin Motor. |
-| `/koman/login` | [`SahinLogin`](file:///home/just-z/Desktop/SahinMotor-Fe/src/features/auth/pages/SahinLogin.tsx) | Brand-specific login endpoint for Koman Motor. |
-| `/select-business` | [`BusinessSelectionPage`](file:///home/just-z/Desktop/SahinMotor-Fe/src/features/business/pages/BusinessSelectionPage.tsx) | Dealer/business selection card grid. |
-| `/:businessId` | [`DashboardLayout`](file:///home/just-z/Desktop/SahinMotor-Fe/src/layouts/DashboardLayout.tsx) | Parent layout with sidebar, header, avatar & notifications. |
-| `/:businessId/` | [`SalesPage`](file:///home/just-z/Desktop/SahinMotor-Fe/src/features/sales/pages/SalesPage.tsx) | Default child index route (redirects view to Sales). |
-| `/:businessId/sales` | [`SalesPage`](file:///home/just-z/Desktop/SahinMotor-Fe/src/features/sales/pages/SalesPage.tsx) | Sales POS, invoice creation & transaction table. |
-| `/:businessId/stock` | [`StockPage`](file:///home/just-z/Desktop/SahinMotor-Fe/src/features/stock/pages/StockPage.tsx) | Inventory management & critical stock filters. |
-| `/:businessId/customers` | [`CustomersPage`](file:///home/just-z/Desktop/SahinMotor-Fe/src/features/customers/pages/CustomersPage.tsx) | Customer CRM management. |
-| `/:businessId/dealers` | [`DealersPage`](file:///home/just-z/Desktop/SahinMotor-Fe/src/features/dealers/pages/DealersPage.tsx) | Multi-dealer management & user assignment. |
-| `/:businessId/users` | [`UsersPage`](file:///home/just-z/Desktop/SahinMotor-Fe/src/features/users/pages/UsersPage.tsx) | User accounts, roles & password resets. |
-| `/:businessId/transactions` | [`TransactionsPage`](file:///home/just-z/Desktop/SahinMotor-Fe/src/features/transactions/pages/TransactionsPage.tsx) | Combined logs & financial analytics view. |
-| `*` | [`NotFoundPage`](file:///home/just-z/Desktop/SahinMotor-Fe/src/pages/NotFoundPage.tsx) | 404 Fallback page. |
-
----
-
-## 🎨 Layout & Shell Components (`DashboardLayout.tsx`)
-
-`DashboardLayout` serves as the shell for all authenticated views. Key capabilities:
-1. **Collapsible Sidebar**: Dynamic widths (240px expanded / 64px collapsed), collapsible via button or auto breakpoint (`lg`).
-2. **Dynamic Branding Logo**: Fetches current dealer by `businessId` from URL parameter. Displays dealer logo image if available, or falls back to dealer name/initials.
-3. **Business Switcher Link**: Bottom sider link to navigate back to `/select-business`.
-4. **Header Navigation**:
-   - Sidebar fold toggle.
-   - Current business title.
-   - Bell popover badge showing unread notifications with quick clear & navigation to `/transactions`.
-   - User dropdown menu (Profile edit modal, Password update modal, Logout trigger).
-5. **Modal Container**: Holds global instance of `ProfileModal` and `PasswordModal`.
-
----
-
-## 🔄 Shared Utilities Deep-Dive
-
-### 1. Global Pub-Sub Event Emitter ([`src/shared/events.ts`](file:///home/just-z/Desktop/SahinMotor-Fe/src/shared/events.ts))
-Provides zero-dependency event publishing/subscribing. Used to update the Header dealer info when dealer profile details are edited (`dealerUpdated` event).
-
-```typescript
-export function emit(event: string);
-export function on(event: string, fn: Listener): () => void; // Returns unsubscribe callback
+```text
+src/main.tsx
+  → React.StrictMode
+    → src/App.tsx
+      → ConfigProvider(locale=tr_TR)
+        → AppRouter
 ```
 
-### 2. Reactive In-Memory Notification Store ([`src/shared/notifications.ts`](file:///home/just-z/Desktop/SahinMotor-Fe/src/shared/notifications.ts))
-Uses React 19's native `useSyncExternalStore` hook for reactive state synchronization without external state libraries.
+`App.tsx` Ant Design yerelleştirmesini uygular. Uygulama `createBrowserRouter` kullanır; sunucuda doğrudan alt route açılacaksa SPA fallback yapılandırması gerekir.
 
-```typescript
-export interface Notification {
-  id: string;
-  message: string;
-  time: string;
-  type: 'sales' | 'stock' | 'login' | 'logout';
-}
-export function addNotification(n: Omit<Notification, 'id' | 'time'>);
-export function clearNotifications();
-export function useNotifications(): Notification[];
+## Route matrisi
+
+| URL | Render edilen ekran | Layout | Durum |
+|---|---|---|---|
+| `/` | `SahinLogin` | yok | aktif |
+| `/sahin/login` | `SahinLogin` | yok | aktif |
+| `/koman/login` | `SahinLogin` | yok | aktif; Koman'a özel davranmaz |
+| `/select-business` | `BusinessSelectionPage` | yok | aktif, guard yok |
+| `/:businessId` | `SalesPage` | `DashboardLayout` | index route; redirect değil |
+| `/:businessId/sales` | `SalesPage` | `DashboardLayout` | aktif |
+| `/:businessId/stock` | `StockPage` | `DashboardLayout` | aktif |
+| `/:businessId/customers` | `CustomersPage` | `DashboardLayout` | aktif |
+| `/:businessId/dealers` | `DealersPage` | `DashboardLayout` | aktif |
+| `/:businessId/users` | `UsersPage` | `DashboardLayout` | aktif |
+| `/:businessId/transactions` | `TransactionsPage` | `DashboardLayout` | aktif |
+| diğer tüm yollar | `NotFoundPage` | konuma göre | aktif |
+
+`DashboardPage`, `ReportsPage` ve `LogsPage` derlenir fakat router tarafından import edilmez ve sidebar'da görünmez.
+
+## DashboardLayout
+
+Layout iki parçalı Ant Design `Layout` kullanır:
+
+- Sidebar genişliği 240 px, daraltılmış genişliği 64 px; `lg` breakpoint tanımlıdır.
+- Menü sırası: Satış, Stok, Müşteri, Bayi, Kullanıcı, İşlemler.
+- Seçili menü anahtarı `location.pathname.includes()` ile hesaplanır; eşleşme yoksa `sales` seçilir.
+- Menü tıklaması `/${businessId}/${key}` adresine gider.
+- Bayi adı/logosu `getDealers()` ile `businessId` üzerinden yüklenir.
+- `dealerUpdated` eventi geldiğinde bayi bilgisi yeniden okunur.
+- “İşletme Değiştir” `/select-business`, çıkış `/` adresine yönlendirir; oturum temizleyen servis yoktur.
+- Header'da bildirim popover'ı ve profil dropdown'ı bulunur.
+
+Profil state'i layout içinde `Zeynel Şahin / zeynel@sahinmotor.com` ile başlar. Profil resmi base64'e çevrilir ve yalnızca component state'inde tutulur. Parola modalının callback'i parolayı kaydetmez.
+
+## Ortak altyapı
+
+### Event registry
+
+`src/shared/events.ts`, event adı → listener set'i tutan basit senkron bir publish/subscribe katmanıdır. Canlı kullanım yalnızca `dealerUpdated` olayıdır; bayi CRUD/atama işlemleri sonrası layout bayi bilgisini yeniler.
+
+### Bildirim store'u
+
+`src/shared/notifications.ts`:
+
+- `useSyncExternalStore` ile okunur.
+- En fazla 20 bildirimi bellekte tutar.
+- `addNotification`, `clearNotifications` ve subscribe/snapshot işlevlerini sağlar.
+- Kod tabanında `addNotification(...)` çağrısı olmadığı için popover normalde boştur.
+- Kalıcı depolama yoktur.
+
+### Görsel yardımcı
+
+`getBase64(file)`, `FileReader.readAsDataURL` kullanır. Ürün, bayi ve profil görselleri backend'e yüklenmez; data URL olarak bellekte tutulur.
+
+### Validation yardımcıları
+
+- `formatPhoneNumber`: rakam dışını temizler, baştaki `0`ı kaldırır, 10 rakama kadar `(5xx) xxx xx xx` biçimi üretir.
+- `validatePasswordRule`: en az 10 karakter, büyük harf, küçük harf, rakam ve özel karakter ister.
+
+Bu güçlü parola doğrulayıcısı her parola yüzeyinde kullanılmaz; detaylar geliştirme belgesindedir.
+
+### Ortak workflow parçaları
+
+`WorkflowSpotlight`, Satış sayfasının boş başlangıç görünümündeki ikon, başlık, açıklama, 760 px içerik alanı, opsiyonel aksiyon slotu ve responsive tipografiyi tek CSS kaynağında tutar.
+
+`WorkflowProductSearch`, Satış başlangıcı ile Mal Kabul ve Atık Ürün drawer'larında aynı gerçek `Input`, sabit “Ürün adı veya barkod ile arayın...” placeholder'ı, arama ikonu, kamera aksiyonu, Enter davranışı ve öneri kabuğunu kullanmasını sağlar. Parent genişliği kullanıldığı yüzey tarafından belirlenir. Query ve ürün seçme state'i feature'da kalır; Satış kamerası barkod overlay'ini açar, stok drawer'larındaki kamera aksiyonu fiziksel barkod girişi için input'a odaklanır.
+
+## Feature bağımlılıkları
+
+```text
+businessService ─────→ dealersService
+dealersService ──────→ usersService içindeki exported users dizisi
+DashboardLayout ─────→ dealersService + events + notifications
+Transactions hook ───→ reportsService + logsService + stockService + salesService
+Sales hook ──────────→ salesService içindeki bağımsız ürün/müşteri/satış verisi
+Stock hook ──────────→ stockService + route businessId
 ```
 
-### 3. Phone & Password Validation Helpers ([`src/shared/validation.ts`](file:///home/just-z/Desktop/SahinMotor-Fe/src/shared/validation.ts))
-- `formatPhoneNumber(value: string)`: Converts raw numbers to `(5XX) XXX XX XX` Turkish format.
-- `validatePasswordRule(_, value: string)`: Ant Design rule validator enforcing minimum 10 characters, uppercase, lowercase, digit, and special character.
+Bu bağımlılıklar tek bir merkezi store oluşturmaz. Özellikle `salesService` ürünleri ile `stockService` ürünleri farklı koleksiyonlardır.
 
-### 4. Base64 Converter ([`src/shared/image.ts`](file:///home/just-z/Desktop/SahinMotor-Fe/src/shared/image.ts))
-- `getBase64(file: File): Promise<string>`: Converts image upload objects to Base64 data URLs for inline previewing and storage.
+## State ve hata yönetimi
+
+- Sayfa state'i hook içinde `useState` ile tutulur.
+- Veri yükleme çoğunlukla `useEffect` içinden hook'un `fetch` callback'ini çağırır.
+- Servis hataları hook'ta state veya Ant Design `message` ile gösterilir.
+- Modal ve drawer görünürlüğü sayfa veya bileşen local state'idir.
+- Error boundary, cache, request cancellation veya optimistic rollback altyapısı yoktur.

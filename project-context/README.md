@@ -1,42 +1,30 @@
-# SahinMotor-Fe - Project Context Index & AI Agent Guidelines
+# Şahin Motor Frontend — Project Context
 
-> **Notice for AI Agents**: This directory (`project-context/`) contains comprehensive architectural, domain, schema, and technical specifications for `SahinMotor-Fe`. Always consult these documents before modifying or creating features in this repository.
+Bu dizin, `sahinmotor-fe` kod tabanının güncel teknik ve işlevsel haritasıdır. Son canlı kod denetimi: **19 Ağustos 2026**.
 
----
+> Bu belgeler tasarım hedefini değil, bugün çalışan kaynak kodu anlatır. Kod ile belge çelişirse `src/`, `package.json` ve yapılandırma dosyaları kaynak kabul edilmelidir.
 
-## 📚 Document Index
+## Okuma sırası
 
-| Document | Description |
-| :--- | :--- |
-| [01-PROJECT-OVERVIEW.md](file:///home/just-z/Desktop/SahinMotor-Fe/project-context/01-PROJECT-OVERVIEW.md) | High-level business domain, core objectives, tech stack, and project scripts. |
-| [02-ARCHITECTURE-AND-ROUTING.md](file:///home/just-z/Desktop/SahinMotor-Fe/project-context/02-ARCHITECTURE-AND-ROUTING.md) | Directory layout, React Router v7 routes, `DashboardLayout`, shared utilities, & pub-sub events. |
-| [03-AUTH-AND-BUSINESS-DOMAINS.md](file:///home/just-z/Desktop/SahinMotor-Fe/project-context/03-AUTH-AND-BUSINESS-DOMAINS.md) | Multi-brand authentication (Şahin Motor & Koman Motor), business selection, roles, location data, & service specialties. |
-| [04-FEATURE-MODULES-AND-SERVICES.md](file:///home/just-z/Desktop/SahinMotor-Fe/project-context/04-FEATURE-MODULES-AND-SERVICES.md) | Detailed walkthrough of all 9 feature modules: Sales, Stock, Customers, Dealers, Users, Transactions, Logs, Dashboard, Reports. |
-| [05-DATA-MODELS-AND-TYPES.md](file:///home/just-z/Desktop/SahinMotor-Fe/project-context/05-DATA-MODELS-AND-TYPES.md) | Complete index of TypeScript interfaces, type definitions, and constant mappings across the codebase. |
-| [06-DEVELOPMENT-AND-CONVENTIONS.md](file:///home/just-z/Desktop/SahinMotor-Fe/project-context/06-DEVELOPMENT-AND-CONVENTIONS.md) | Design patterns (Custom Hooks + Service pattern), form validation rules, styling guidelines, and AI agent workflow conventions. |
+1. [Proje Özeti](01-PROJECT-OVERVIEW.md) — ürün kapsamı, teknoloji ve gerçek sistem sınırları
+2. [Mimari ve Routing](02-ARCHITECTURE-AND-ROUTING.md) — klasör yapısı, route ağacı, layout ve ortak altyapı
+3. [Kimlik Doğrulama ve İşletme Alanı](03-AUTH-AND-BUSINESS-DOMAINS.md) — giriş, kayıt kodları, işletme seçimi ve profil davranışı
+4. [Feature Modülleri ve Servisler](04-FEATURE-MODULES-AND-SERVICES.md) — 11 feature alanının canlı akışları
+5. [Veri Modelleri ve Tipler](05-DATA-MODELS-AND-TYPES.md) — TypeScript sözleşmeleri, sahiplik ve veri ilişkileri
+6. [Geliştirme ve Konvansiyonlar](06-DEVELOPMENT-AND-CONVENTIONS.md) — komutlar, doğrulama, test durumu ve çalışma kuralları
 
----
+## Hızlı gerçeklik kontrolü
 
-## 🛠 Project Snapshot
+- Uygulama React/Vite tabanlı, tarayıcıda çalışan bir SPA'dır.
+- Backend, HTTP istemcisi, gerçek oturum, route guard ve kalıcı veri deposu yoktur.
+- Servisler `setTimeout` kullanan modül içi mock diziler döndürür; sayfa yenilemesi veriyi başlangıç haline getirir.
+- Ekranlar aynı alan adlarını kullansa da stok, satış, müşteri, rapor ve log verileri tek bir ortak store değildir.
+- Router'a bağlı ekranlar: satış, stok, müşteri, bayi, kullanıcı ve işlemler.
+- `dashboard`, `reports` ve `logs` modülleri kaynakta vardır fakat route veya menüye bağlı değildir.
+- Mal Kabul, stok sayfası üzerinde açılan drawer içinde listeyi onaya kadar geçici tutar ve son onayda toplu/atomik uygular.
+- Atık Ürün, kayıtlı ürünleri nedenleriyle geçici bir drawer listesinde toplar ve onayda stoktan toplu/atomik düşer.
+- Otomatik test altyapısı yoktur. `npm run build` ana derleme kontrolüdür; lint tabanında bilinen mevcut hatalar bulunabilir.
 
-- **Project Name**: `sahinmotor-fe`
-- **Primary Domain**: B2B/B2C Motorcycle Sales, Repair & Maintenance, Equipment E-Commerce & Multi-Dealer Management System.
-- **Key Brands**:
-  - **Şahin Motor**: Zero/Used Motorcycle Sales, Maintenance & Repair Services.
-  - **Koman Motor**: Helmets, Jackets, Protective Gear & Riding Accessories.
-- **Core Tech Stack**: React 19, TypeScript 6, Vite 8, React Router v7, Ant Design (`antd`) v6, Custom CSS / BEM.
-- **Data Layer**: Service Layer with Async Promises and Mock Data (Ready for REST API / GraphQL integration).
+## Güncelleme ilkesi
 
----
-
-## 🤖 Instructions for AI Agents Working on This Repository
-
-1. **Maintain Feature-Sliced Module Structure**: Keep feature-specific code inside `src/features/<feature-name>/` (containing `components/`, `hooks/`, `pages/`, `services/`, `types/`).
-2. **Follow Custom Hook + Service Pattern**: Pages should consume custom hooks (e.g., `useSales`, `useStock`), which call service layer functions (e.g., `salesService.ts`, `stockService.ts`).
-3. **Preserve UI Aesthetics**: Use Ant Design v6 components styled with clean CSS, Turkish localization, responsive layouts, and Poppins font.
-4. **Use Shared Utilities**:
-   - `src/shared/notifications.ts` for reactive state using `useSyncExternalStore`.
-   - `src/shared/events.ts` for pub-sub global events (`on`, `emit`).
-   - `src/shared/validation.ts` for Turkish phone number formatting & password rules.
-   - `src/shared/image.ts` for file-to-Base64 conversions.
-5. **Update Context Documentation**: Whenever adding new features, schemas, or routing paths, update the relevant documents in this `project-context/` directory.
+Bir davranış değiştirildiğinde yalnızca ilgili bölüm değil, bağlantılı route, hook, servis, tip ve sınırlama notları da birlikte güncellenmelidir. Özellikle `businessId`/`dealerId` sahipliği, mock veri izolasyonu ve gerçekte route'a bağlı olmayan ekranlar varsayımla belgelenmemelidir.

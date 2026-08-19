@@ -1,0 +1,82 @@
+.workflow-spotlight {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--workflow-spotlight-min-height, calc(100vh - 164px));
+  padding: 40px 24px;
+  gap: 30px;
+}
+
+.workflow-spotlight__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 620px;
+  text-align: center;
+}
+
+.workflow-spotlight__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  flex: 0 0 80px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #E32727 0%, #B91C1C 100%);
+  box-shadow: 0 14px 34px rgba(227, 39, 39, 0.22);
+  color: #FFFFFF;
+  font-size: 36px;
+}
+
+.workflow-spotlight__title {
+  margin: 0;
+  color: #1E293B;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.6px;
+}
+
+.workflow-spotlight__description {
+  max-width: 560px;
+  color: #64748B;
+  font-size: 14px;
+  line-height: 1.7;
+  text-align: center;
+}
+
+.workflow-spotlight__content {
+  width: min(100%, 760px);
+}
+
+.workflow-spotlight__actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 42px;
+}
+
+@media (max-width: 760px) {
+  .workflow-spotlight {
+    padding: 28px 16px 48px;
+    gap: 22px;
+  }
+
+  .workflow-spotlight__icon {
+    width: 64px;
+    height: 64px;
+    flex-basis: 64px;
+    border-radius: 18px;
+    font-size: 27px;
+  }
+
+  .workflow-spotlight__title {
+    font-size: 24px;
+  }
+
+}

@@ -5,11 +5,22 @@ import { getLogs } from '../../logs/services/logsService';
 import { getProducts } from '../../stock/services/stockService';
 import { getSales } from '../../sales/services/salesService';
 import type { DailyReport, MonthlyReport, ProductReport, ReportPeriod, ReportSummary, WeeklyReport } from '../../reports/types/reports';
-import type { LogEntry, LogType } from '../../logs/types/logs';
+import type { LogEntry } from '../../logs/types/logs';
 import type { Sale } from '../../sales/types/sales';
 
 type State = 'loading' | 'loaded' | 'error';
 export type DatePreset = 'today' | 'weekly' | 'monthly' | 'quarterly';
+export type ActivityTypeFilter = 'all' | 'sales' | 'stockEntry' | 'stock' | 'waste';
+
+function getActivityType(log: LogEntry): Exclude<ActivityTypeFilter, 'all'> | null {
+  if (log.type === 'sales') return 'sales';
+  if (log.type !== 'stock') return null;
+
+  const searchableText = `${log.module} ${log.description} ${log.detail ?? ''}`.toLocaleLowerCase('tr-TR');
+  if (searchableText.includes('mal kabul') || searchableText.includes('stok girişi')) return 'stockEntry';
+  if (searchableText.includes('atık')) return 'waste';
+  return 'stock';
+}
 
 interface UseTransactionsReturn {
   state: State;
@@ -30,12 +41,12 @@ interface UseTransactionsReturn {
   logs: LogEntry[];
   filteredLogs: LogEntry[];
   logSearch: string;
-  logTypeFilter: LogType | 'all';
+  logTypeFilter: ActivityTypeFilter;
   logUserFilter: string | 'all';
   setPeriod: (p: ReportPeriod) => void;
   setDatePreset: (preset: DatePreset) => void;
   setLogSearch: (s: string) => void;
-  setLogTypeFilter: (f: LogType | 'all') => void;
+  setLogTypeFilter: (f: ActivityTypeFilter) => void;
   setLogUserFilter: (u: string | 'all') => void;
   openInvoiceModal: (sale: Sale | DailyReport) => void;
   closeInvoiceModal: () => void;
@@ -61,7 +72,7 @@ export function useTransactions(): UseTransactionsReturn {
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [logSearch, setLogSearch] = useState('');
-  const [logTypeFilter, setLogTypeFilter] = useState<LogType | 'all'>('all');
+  const [logTypeFilter, setLogTypeFilter] = useState<ActivityTypeFilter>('all');
   const [logUserFilter, setLogUserFilter] = useState<string | 'all'>('all');
 
   const fetch = useCallback(() => {
@@ -104,8 +115,7 @@ export function useTransactions(): UseTransactionsReturn {
   const filteredLogs = useMemo(() => {
     let result = logs.filter((l) => l.type !== 'login' && l.type !== 'logout');
     if (logTypeFilter !== 'all') {
-
-      result = result.filter((l) => l.type === logTypeFilter);
+      result = result.filter((log) => getActivityType(log) === logTypeFilter);
     }
     if (logUserFilter !== 'all') {
       result = result.filter((l) => l.user.name === logUserFilter);
@@ -225,4 +235,3 @@ export function useTransactions(): UseTransactionsReturn {
     retry: fetch,
   };
 }
-

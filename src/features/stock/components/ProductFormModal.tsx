@@ -12,8 +12,10 @@ interface ProductFormModalProps {
   onCancel: () => void;
   onSubmit: (values: ProductFormValues) => Promise<void>;
   initialBarcode?: string;
+  initialValues?: Partial<ProductFormValues>;
   hideStockField?: boolean;
   existingBarcodes?: string[];
+  title?: string;
 }
 
 export function ProductFormModal({
@@ -22,11 +24,13 @@ export function ProductFormModal({
   onCancel,
   onSubmit,
   initialBarcode,
+  initialValues,
   hideStockField,
   existingBarcodes = [],
+  title,
 }: ProductFormModalProps) {
   const [form] = Form.useForm();
-  const isEdit = !!editingProduct;
+  const isEdit = !!editingProduct || !!initialValues;
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -40,6 +44,14 @@ export function ProductFormModal({
         } else {
           setFileList([]);
         }
+      } else if (initialValues) {
+        form.resetFields();
+        form.setFieldsValue(initialValues);
+        if (initialValues.imageUrl) {
+          setFileList([{ uid: '-1', name: 'image.png', status: 'done', url: initialValues.imageUrl }]);
+        } else {
+          setFileList([]);
+        }
       } else {
         form.resetFields();
         if (initialBarcode) {
@@ -48,7 +60,7 @@ export function ProductFormModal({
         setFileList([]);
       }
     }
-  }, [open, editingProduct, form, initialBarcode]);
+  }, [open, editingProduct, form, initialBarcode, initialValues]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleFinish = async (values: Record<string, unknown>) => {
@@ -76,7 +88,7 @@ export function ProductFormModal({
 
   return (
     <Modal
-      title={isEdit ? 'Ürün Düzenle' : 'Yeni Ürün Ekle'}
+      title={title ?? (isEdit ? 'Ürün Düzenle' : 'Yeni Ürün Ekle')}
       open={open}
       onCancel={onCancel}
       onOk={() => form.submit()}
@@ -102,7 +114,7 @@ export function ProductFormModal({
                 validator: (_, value) => {
                   if (!value) return Promise.resolve();
                   const barcode = String(value).trim();
-                  const ownBarcode = editingProduct?.barcode.trim();
+                  const ownBarcode = editingProduct?.barcode.trim() ?? initialValues?.barcode?.trim();
                   const duplicate = existingBarcodes.some((item) => item.trim() === barcode);
                   if (duplicate && barcode !== ownBarcode) {
                     return Promise.reject(new Error('Bu barkodla kayıtlı bir ürün zaten var'));

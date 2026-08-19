@@ -1,8 +1,9 @@
-import type { Product, ProductFormValues, StockEntryItem } from '../types/stock';
+import { WASTE_REASON_OPTIONS } from '../types/stock';
+import type { Product, ProductFormValues, StockEntryItem, WasteEntryItem, WasteRecord } from '../types/stock';
 
 const now = '06.08.2026 14:30';
 
-const MOCK_PRODUCTS: Product[] = [
+const BASE_MOCK_PRODUCTS: Product[] = [
   { id: '1', barcode: '8691234567001', name: 'Motul 10W40 Motor Yağı', brand: 'Motul', model: '10W40', size: 'M', color: 'Amber', purchasePrice: 320, salePrice: 450, stock: 2, minStock: 5, dealerId: 'd1', createdAt: now, updatedAt: now, imageUrl: '/image.png' },
   { id: '2', barcode: '8691234567002', name: 'Castrol Power1 10W40', brand: 'Castrol', model: 'Power1', size: 'M', color: 'Altın', purchasePrice: 260, salePrice: 380, stock: 15, minStock: 10, dealerId: 'd1', createdAt: now, updatedAt: now, imageUrl: '/image.png' },
   { id: '3', barcode: '8691234567003', name: 'Fren Hidroliği DOT4', brand: 'Bosch', model: 'DOT4', size: 'S', color: 'Sarı', purchasePrice: 80, salePrice: 120, stock: 1, minStock: 3, dealerId: 'd1', createdAt: now, updatedAt: now, imageUrl: '/image.png' },
@@ -17,7 +18,17 @@ const MOCK_PRODUCTS: Product[] = [
   { id: '12', barcode: '8691234567012', name: 'Gaz Teli', brand: 'Domino', model: 'GT-150', size: 'M', color: 'Siyah', purchasePrice: 40, salePrice: 70, stock: 7, minStock: 3, dealerId: 'd1', createdAt: now, updatedAt: now, imageUrl: '/image.png' },
 ];
 
+const MOCK_PRODUCTS: Product[] = [
+  ...BASE_MOCK_PRODUCTS,
+  ...BASE_MOCK_PRODUCTS.map((product, index) => ({
+    ...product,
+    id: `d2-${index + 1}`,
+    dealerId: 'd2',
+  })),
+];
+
 let products = [...MOCK_PRODUCTS];
+let wasteRecords: WasteRecord[] = [];
 
 export async function getProducts(): Promise<Product[]> {
   return new Promise((resolve) => {
@@ -137,5 +148,89 @@ export async function applyStockEntries(entries: StockEntryItem[], dealerId: str
       products = next;
       resolve(updated);
     }, 400);
+  });
+}
+
+export async function applyWasteEntries(entries: WasteEntryItem[], dealerId: string): Promise<Product[]> {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (!dealerId) {
+        reject(new Error('İşletme bilgisi bulunamadı'));
+        return;
+      }
+      if (entries.length === 0) {
+        reject(new Error('Atık ürün listesi boş'));
+        return;
+      }
+
+      const validReasons = new Set(WASTE_REASON_OPTIONS.map((option) => option.value));
+      const now = new Date().toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const nextProducts = [...products];
+      const updatedProducts: Product[] = [];
+      const nextWasteRecords: WasteRecord[] = [];
+      const seenProductIds = new Set<string>();
+
+      for (const entry of entries) {
+        if (!entry.productId || seenProductIds.has(entry.productId)) {
+          reject(new Error(`${entry.name} atık listesinde birden fazla kez yer alıyor`));
+          return;
+        }
+        if (!Number.isSafeInteger(entry.quantity) || entry.quantity < 1) {
+          reject(new Error(`${entry.name} için geçerli bir atık miktarı yazın`));
+          return;
+        }
+        if (!entry.reason || !validReasons.has(entry.reason)) {
+          reject(new Error(`${entry.name} için atık nedeni seçin`));
+          return;
+        }
+
+        seenProductIds.add(entry.productId);
+        const productIndex = nextProducts.findIndex((product) => product.id === entry.productId);
+        if (productIndex === -1) {
+          reject(new Error(`${entry.name} bulunamadı`));
+          return;
+        }
+
+        const currentProduct = nextProducts[productIndex];
+        if (currentProduct.dealerId !== dealerId) {
+          reject(new Error(`${entry.name} seçili işletmeye ait değil`));
+          return;
+        }
+        if (entry.quantity > currentProduct.stock) {
+          reject(new Error(`${entry.name} için atık miktarı mevcut stoktan fazla olamaz`));
+          return;
+        }
+
+        const updatedProduct: Product = {
+          ...currentProduct,
+          stock: currentProduct.stock - entry.quantity,
+          updatedAt: now,
+        };
+        nextProducts[productIndex] = updatedProduct;
+        updatedProducts.push(updatedProduct);
+        nextWasteRecords.push({
+          ...entry,
+          reason: entry.reason,
+          id: `waste-${Date.now()}-${nextWasteRecords.length + 1}`,
+          dealerId,
+          createdAt: now,
+        });
+      }
+
+      products = nextProducts;
+      wasteRecords = [...nextWasteRecords, ...wasteRecords];
+      resolve(updatedProducts);
+    }, 400);
+  });
+}
+
+export async function getWasteRecords(dealerId?: string): Promise<WasteRecord[]> {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const records = dealerId
+        ? wasteRecords.filter((record) => record.dealerId === dealerId)
+        : wasteRecords;
+      resolve([...records]);
+    }, 300);
   });
 }
